@@ -155,6 +155,17 @@ let c_split game =
                            renormalize_game {game with board = region})
 
 
+let c_would_split game =
+    if not (should_try_to_split game) then false else
+
+    let square = SqSet.choose game.board
+    in
+    let region = !(pick_off_region game.board square (ref SqSet.empty))
+    in
+    if SqSet.cardinal region == SqSet.cardinal game.board
+        then false
+        else true
+
 
 let min_breadth game =
     let rows = Array.make (game.height+1) 0
@@ -185,6 +196,18 @@ let distance_of_last_move_from_center game =
     square (r-cr) + square (c-cc)
 
 
+let pull_to_front fn xs =
+    let ys, zs = List.partition fn xs
+    in ys @ zs
+
+
+let is_row_or_column_missing game =
+    let (r1, c1), (r2, c2) = get_last_move game
+    in
+    is_row_missing game r1 || (r1 <> r2 && is_row_missing game r2) ||
+    is_column_missing game c1 || (c1 <> c2 && is_column_missing game c2)
+
+
 let c_sorted_options game =
     let opts = c_options_for_game game
     in
@@ -192,8 +215,11 @@ let c_sorted_options game =
     in
     let s = List.sort (fun (a, b) (c, d) -> a - c) dec
     in
-    List.map (fun (a, b) -> b) s
+    let y = List.map (fun (a, b) -> b) s
+    in
+    (* pull_to_front is_row_or_column_missing y *)
     (* shuffle opts *)
+    pull_to_front (fun opt -> c_would_split opt) y
 
 let c_hasher game =
     SqSet.elements game.board
