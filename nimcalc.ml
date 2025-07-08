@@ -19,6 +19,8 @@ let cpus =
     with e ->
         1
 
+let null_splitter _ = None
+
 let call_counter = ref 0
 let hit_counter = ref 0
 
@@ -90,7 +92,7 @@ is_game_a_win (Game (game, nimheap)) optgen splitter tts hasher =
             is_game_a_win (Game (h, g_nimber lxor nimheap)) optgen splitter tts hasher)
     in
     
-    if List.length options < 10
+    if List.length options < (if splitter == null_splitter then 10 else 5)
         then compute ()
         else
 
@@ -131,10 +133,10 @@ and nimber_of_game_top' game candidate optgen splitter hasher =
 
 
 let nimber_of_game game optgen splitter hasher =
-    nimber_of_game_top' game 0 (options_for_compound optgen) (if nosplit then fun _ -> None else splitter) hasher
+    nimber_of_game_top' game 0 (options_for_compound optgen) (if nosplit then null_splitter else splitter) hasher
 
 let nonzero_nimber_of_game game optgen splitter hasher =
-    nimber_of_game_top' game 1 (options_for_compound optgen) (if nosplit then fun _ -> None else splitter) hasher
+    nimber_of_game_top' game 1 (options_for_compound optgen) (if nosplit then null_splitter else splitter) hasher
 
 
 

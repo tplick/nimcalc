@@ -101,7 +101,7 @@ let _ =
     in
     let (nimber, time) = with_time
             (fun () -> (if n mod 2 = 1 then nonzero_nimber_of_game else nimber_of_game)
-                            (q_new_game n) q_options_for_game (fun _ -> None) (fun x -> x))
+                            (q_new_game n) q_options_for_game null_splitter (fun x -> x))
     in
     Printf.printf "%d: %d  (took %.2f sec and %d positions)\n%!" n nimber time !call_counter
 
