@@ -64,9 +64,9 @@ let add_to_table tt game value =
     Hashtbl.add tt.hashtable game value
 
 let look_up_in_table tt game =
-    if Hashtbl.mem tt.hashtable game
-        then (incr hit_counter; Some (Hashtbl.find tt.hashtable game))
-        else None
+    match Hashtbl.find_opt tt.hashtable game with
+        | (Some v) as x -> (incr hit_counter; x)
+        | None -> None
 
 let new_table () =
     {hashtable = Hashtbl.create 100; size = 10000}
