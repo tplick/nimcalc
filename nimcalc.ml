@@ -56,7 +56,7 @@ let rec options_for_compound optgen topgame =
 
 
 
-type 'a tt_table = {hashtable: ('a, bool) Hashtbl.t; mutable size: int}
+type ('a, 'b) tt_table = {hashtable: ('a, 'b) Hashtbl.t; mutable size: int}
 
 let add_to_table tt game value =
     (if Hashtbl.length tt.hashtable >= tt.size
@@ -78,35 +78,40 @@ let rec new_table_list n acc =
 
 
 let rec
-is_game_a_win (Game (game, nimheap)) optgen splitter tts hasher =
+is_game_a_win (Game (game, nimheap)) optgen splitter tts hasher nimval_tts =
     incr call_counter;
 
     let options = optgen (Game (game, nimheap))
     in
 
     let compute () = (match splitter game with
-        | None -> List.exists (fun opt -> is_game_a_loss opt optgen splitter (List.tl tts) hasher) options
+        | None -> List.exists (fun opt -> is_game_a_loss opt optgen splitter (List.tl tts) hasher (nimval_tts)) options
         | Some (g, h) ->
-            let g_nimber = nimber_of_game' g 0 optgen splitter tts hasher
+            let g_nimber = nimber_of_game' g 0 optgen splitter tts hasher nimval_tts
             in
-            is_game_a_win (Game (h, g_nimber lxor nimheap)) optgen splitter tts hasher)
+            is_game_a_win (Game (h, g_nimber lxor nimheap)) optgen splitter tts hasher nimval_tts)
     in
     
     if List.length options < (if splitter == null_splitter then 10 else 5)
         then compute ()
         else
 
-    match look_up_in_table (List.hd tts) (hasher game, nimheap) with
+    let hashed_game = hasher game in
+    match look_up_in_table (List.hd nimval_tts) (hashed_game) with
+        | Some v -> v <> nimheap
+        | None ->
+    match look_up_in_table (List.hd tts) (hashed_game, nimheap) with
         | Some v -> v
         | None ->
     let value = compute ()
-    in add_to_table (List.hd tts) (hasher game, nimheap) value;
+    in add_to_table (List.hd tts) (hashed_game, nimheap) value;
+    (if value == false then add_to_table (List.hd nimval_tts) (hashed_game) nimheap);
     value
 
-and is_game_a_loss game optgen splitter tt hasher =
-    not (is_game_a_win game optgen splitter tt hasher)
+and is_game_a_loss game optgen splitter tt hasher nimval_tts =
+    not (is_game_a_win game optgen splitter tt hasher nimval_tts)
 
-and is_game_a_loss_top game optgen splitter tt hasher =
+and is_game_a_loss_top game optgen splitter tt hasher nimval_tts =
     let count = List.length (optgen game) and idx = ref 0
     in
     (if verbose then Printf.printf "  There are %d options to try.\n%!" count);
@@ -115,28 +120,28 @@ and is_game_a_loss_top game optgen splitter tt hasher =
     let result = not (Par.par_list_exists_new (fun opt ->
             (if verbose && cpus = 1 then Printf.printf "  Trying option #%d...\r%!" (!idx+1));
             incr idx;
-            is_game_a_loss opt optgen splitter tt hasher) options (List.length options) cpus verbose) in
+            is_game_a_loss opt optgen splitter tt hasher nimval_tts) options (List.length options) cpus verbose) in
     (if verbose && cpus = 1 then Printf.printf "\n%!");
     result
 
-and nimber_of_game' game candidate optgen splitter tts hasher =
-    if is_game_a_loss (Game (game, candidate)) optgen splitter tts hasher
+and nimber_of_game' game candidate optgen splitter tts hasher nimval_tts =
+    if is_game_a_loss (Game (game, candidate)) optgen splitter tts hasher nimval_tts
         then candidate
-        else nimber_of_game' game (candidate + 1) optgen splitter tts hasher
+        else nimber_of_game' game (candidate + 1) optgen splitter tts hasher nimval_tts
 
-and nimber_of_game_top' game candidate optgen splitter hasher =
+and nimber_of_game_top' game candidate optgen splitter hasher nimval_tts =
     (if verbose then Printf.printf "Trying nimber %d...\n%!" candidate);
-    if is_game_a_loss_top (Game (game, candidate)) optgen splitter (new_table_list 100 []) hasher
+    if is_game_a_loss_top (Game (game, candidate)) optgen splitter (new_table_list 100 []) hasher nimval_tts
         then candidate
-        else nimber_of_game_top' game (candidate + 1) optgen splitter hasher
+        else nimber_of_game_top' game (candidate + 1) optgen splitter hasher nimval_tts
 
 
 
 let nimber_of_game game optgen splitter hasher =
-    nimber_of_game_top' game 0 (options_for_compound optgen) (if nosplit then null_splitter else splitter) hasher
+    nimber_of_game_top' game 0 (options_for_compound optgen) (if nosplit then null_splitter else splitter) hasher (new_table_list 100 [])
 
 let nonzero_nimber_of_game game optgen splitter hasher =
-    nimber_of_game_top' game 1 (options_for_compound optgen) (if nosplit then null_splitter else splitter) hasher
+    nimber_of_game_top' game 1 (options_for_compound optgen) (if nosplit then null_splitter else splitter) hasher (new_table_list 100 [])
 
 
 
