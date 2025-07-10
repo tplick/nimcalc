@@ -56,20 +56,19 @@ let rec options_for_compound optgen topgame =
 
 
 
-type ('a, 'b) tt_table = {hashtable: ('a, 'b) Hashtbl.t; mutable size: int}
-
 let add_to_table tt game value =
-    (if Hashtbl.length tt.hashtable >= tt.size
-        then Hashtbl.clear tt.hashtable);
-    Hashtbl.add tt.hashtable game value
+    let h = Hashtbl.hash_param 256 256 game
+    in tt.(h land 8191) <- Some (h, game, value)
 
 let look_up_in_table tt game =
-    match Hashtbl.find_opt tt.hashtable game with
-        | (Some v) as x -> (incr hit_counter; x)
-        | None -> None
+    let h = Hashtbl.hash_param 256 256 game
+    in match tt.(h land 8191) with
+        | Some (h2, k, v) when h = h2 && k = game ->
+            incr hit_counter; Some v
+        | _ -> None
 
 let new_table () =
-    {hashtable = Hashtbl.create 100; size = 10000}
+    Array.make 8192 None
 
 let rec new_table_list n acc =
     if n == 0
