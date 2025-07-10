@@ -16,7 +16,7 @@ let q_new_game n =
 let are_squares_on_line (a, b) (c, d) =
     let rd = a-c and cd = b-d
     in
-    rd == 0 || cd == 0 || abs rd == abs cd
+    rd == 0 || cd == 0 || rd == cd || rd == -cd
 
 let q_after_move game sq1 =
     let board = ref game.board and new_board = ref [] and count = ref 0 in
@@ -27,7 +27,7 @@ let q_after_move game sq1 =
            (new_board := sq2 :: !new_board;
             incr count)
     done;
-    {board = List.rev !new_board;
+    {board = !new_board;
      n = game.n;
      is_new = false;
      size = !count}
