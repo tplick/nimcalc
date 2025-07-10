@@ -56,24 +56,31 @@ let rec options_for_compound optgen topgame =
 
 
 
+let new_table () =
+    Array.make 8192 None
+
+let get_or_create_tt tt =
+    match !tt with
+        | Some x -> x
+        | None -> let new_tt = new_table ()
+                  in tt := Some new_tt;
+                     new_tt
+
 let add_to_table tt game value =
     let h = Hashtbl.hash_param 256 256 game
-    in tt.(h land 8191) <- Some (h, game, value)
+    in (get_or_create_tt tt).(h land 8191) <- Some (h, game, value)
 
 let look_up_in_table tt game =
     let h = Hashtbl.hash_param 256 256 game
-    in match tt.(h land 8191) with
+    in match (get_or_create_tt tt).(h land 8191) with
         | Some (h2, k, v) when h = h2 && k = game ->
             incr hit_counter; Some v
         | _ -> None
 
-let new_table () =
-    Array.make 8192 None
-
 let rec new_table_list n acc =
     if n == 0
         then acc
-        else new_table_list (n-1) (new_table () :: acc)
+        else new_table_list (n-1) (ref None :: acc)
 
 
 let rec
