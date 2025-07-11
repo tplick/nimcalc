@@ -127,6 +127,8 @@ let rec set_map fn set =
             SqSet.add (fn elt) (set_map fn (SqSet.remove elt set))
 
 let renormalize_game game =
+    if true then game else
+
     let min_row = SqSet.fold (fun (r2, _) r -> min r r2) game.board 1000
     and min_col = SqSet.fold (fun (_, c2) c -> min c c2) game.board 1000
     and max_row = SqSet.fold (fun (r2, _) r -> max r r2) game.board 0
