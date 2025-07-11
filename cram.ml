@@ -224,7 +224,11 @@ let c_sorted_options game =
     pull_to_front (fun opt -> c_would_split opt) y
 
 let c_hasher game =
-    SqSet.elements game.board
+    let arr = Array.make (game.height + 1) 0 in
+    SqSet.iter
+        (fun (r, c) -> arr.(r) <- arr.(r) lor (1 lsl c))
+        game.board;
+    arr
 
 let _ =
     let a = int_of_string Sys.argv.(1) and b = int_of_string Sys.argv.(2)
