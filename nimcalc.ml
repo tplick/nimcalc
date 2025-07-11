@@ -23,7 +23,12 @@ let null_splitter _ = None
 
 let call_counter = ref 0
 let hit_counter = ref 0
+let split_counter = ref 0
 
+let reset_counters () =
+    call_counter := 0;
+    hit_counter := 0;
+    split_counter := 0
 
 let push_onto elt list_ref =
     list_ref := elt :: !list_ref
@@ -93,6 +98,7 @@ is_game_a_win (Game (game, nimheap)) optgen splitter tts hasher nimval_tts =
     let compute () = (match splitter game with
         | None -> List.exists (fun opt -> is_game_a_loss opt optgen splitter (List.tl tts) hasher (nimval_tts)) options
         | Some (g, h) ->
+            incr split_counter;
             let g_nimber = nimber_of_game' g 0 optgen splitter tts hasher nimval_tts
             in
             is_game_a_win (Game (h, g_nimber lxor nimheap)) optgen splitter tts hasher nimval_tts)

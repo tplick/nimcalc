@@ -240,5 +240,10 @@ let _ =
     let (nimber, time) = with_time
             (fun () -> fn (c_new_game a b) c_sorted_options c_split c_hasher)
     in
-    Printf.printf "%d x %d: %d  (%.2f sec, %d positions, %d HT hits)\n%!" a b nimber time !call_counter !hit_counter
+    Printf.printf "%d x %d: %d  (%.2f sec, %d positions, %d HT hits, %d splits)\n%!"
+        a b nimber
+        time
+        !call_counter
+        !hit_counter
+        !split_counter
 
