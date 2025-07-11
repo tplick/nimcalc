@@ -96,12 +96,19 @@ let q_splitter game =
         then Some ({game with board = [List.hd game.board]}, {game with board = List.tl game.board})
         else None
 
+let q_hasher game =
+    let arr = Array.make (game.n + 1) 0 in
+    List.iter
+        (fun (r, c) -> arr.(r) <- arr.(r) lor (1 lsl c))
+        game.board;
+    arr
+
 let _ =
     let n = int_of_string Sys.argv.(1)
     in
     let (nimber, time) = with_time
             (fun () -> (if n mod 2 = 1 then nonzero_nimber_of_game else nimber_of_game)
-                            (q_new_game n) q_options_for_game null_splitter (fun x -> x))
+                            (q_new_game n) q_options_for_game null_splitter q_hasher)
     in
     Printf.printf "%d: %d  (took %.2f sec and %d positions)\n%!" n nimber time !call_counter
 
