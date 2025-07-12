@@ -56,6 +56,18 @@ let get_last_move opt =
         | Some x -> x
         | None -> ((0, 0), (0, 0))
 
+let rec split_list_alternating x acc1 acc2 =
+    match x with
+        | [] -> acc1, acc2
+        | [y] -> y :: acc1, acc2
+        | y :: z :: rest -> split_list_alternating rest (y :: acc1) (z :: acc2)
+
+let rec faux_shuffle = function
+    | [] -> []
+    | [x] -> [x]
+    | x -> let y, z = split_list_alternating x [] []
+           in (faux_shuffle y) @ (faux_shuffle z)
+
 let c_options_for_game game =
     let full_square_list = list_of_set game.board
     in
@@ -66,8 +78,8 @@ let c_options_for_game game =
     let horiz_moves = List.filter (can_move_horiz game) square_list
     and vert_moves = List.filter (can_move_vert game) square_list
     in
-    shuffle @@ (List.map (c_after_horiz_move game) horiz_moves) @ (List.map (c_after_vert_move game) vert_moves)
-
+    let z = (List.map (c_after_horiz_move game) horiz_moves) @ (List.map (c_after_vert_move game) vert_moves)
+    in faux_shuffle z
 
 let rec pick_off_region board square set_ref =
     if SqSet.mem square !set_ref
