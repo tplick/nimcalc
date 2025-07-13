@@ -19,6 +19,23 @@ let cpus =
     with e ->
         1
 
+let rec round_up n =
+    if n = 0
+        then 0
+        else n lor round_up (n lsr 1)
+
+let table_mask =
+    try
+        let n = int_of_string (Unix.getenv "NIMCALC_TABLE_SIZE")
+        in let mask = round_up (n - 1)
+        in if n <= 0 then raise (Invalid_argument "");
+        if verbose then Printf.printf "Using table size of %d.\n" (mask + 1);
+        mask
+    with e ->
+        if verbose then Printf.printf "Using default table size of 8192.\n";
+        8191
+
+
 let null_splitter _ = None
 
 let call_counter = ref 0
@@ -62,7 +79,7 @@ let rec options_for_compound optgen topgame =
 
 
 let new_table () =
-    Array.make 8192 None
+    Array.make (table_mask + 1) None
 
 let get_or_create_tt tt =
     match !tt with
@@ -73,11 +90,11 @@ let get_or_create_tt tt =
 
 let add_to_table tt game value =
     let h = Hashtbl.hash_param 256 256 game
-    in (get_or_create_tt tt).(h land 8191) <- Some (h, game, value)
+    in (get_or_create_tt tt).(h land table_mask) <- Some (h, game, value)
 
 let look_up_in_table tt game =
     let h = Hashtbl.hash_param 256 256 game
-    in match (get_or_create_tt tt).(h land 8191) with
+    in match (get_or_create_tt tt).(h land table_mask) with
         | Some (h2, k, v) when h = h2 && k = game ->
             incr hit_counter; Some v
         | _ -> None
