@@ -160,7 +160,14 @@ and nimber_of_game' game candidate optgen splitter tts hasher nimval_tts =
 
 and nimber_of_game_top' game candidate optgen splitter hasher nimval_tts =
     (if verbose then Printf.printf "Trying nimber %d...\n%!" candidate);
-    if is_game_a_loss_top (Game (game, candidate)) optgen splitter (new_table_list 100 []) hasher nimval_tts
+    let tt = new_table_list 100 [] in
+    List.iter
+        (fun table ->
+            for i = 0 to candidate - 1 do
+                add_to_table table (hasher game, i) true
+            done)
+        tt;
+    if is_game_a_loss_top (Game (game, candidate)) optgen splitter tt hasher nimval_tts
         then candidate
         else nimber_of_game_top' game (candidate + 1) optgen splitter hasher nimval_tts
 
