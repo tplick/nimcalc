@@ -5,7 +5,7 @@ module SqSet = Set.Make (struct
     type t = int * int
 
     let compare (a, b) (c, d) =
-        (a - c) * 1000 + (b - d)
+        (a - c) lsl 10 + (b - d)
 end)
 
 let over list fn = List.iter fn list
@@ -26,20 +26,20 @@ let c_new_game a b =
     {board = !set; is_new = true; last_move = None; height = a; width = b}
 
 let can_move_horiz game (a, b) =
-    SqSet.mem (a, b) game.board && SqSet.mem (a, b+1) game.board
+    SqSet.mem (a, b+1) game.board
 
 let can_move_vert  game (a, b) =
-    SqSet.mem (a, b) game.board && SqSet.mem (a+1, b) game.board
+    SqSet.mem (a+1, b) game.board
 
 let c_after_horiz_move game (a, b) =
   {game with
-     board = SqSet.filter (fun sq -> sq <> (a, b) && sq <> (a, b+1)) game.board;
+     board = SqSet.filter (fun (c, d) -> a <> c || (d <> b && d <> b+1)) game.board;
      is_new = false;
      last_move = Some ((a, b), (a, b+1))}
 
 let c_after_vert_move game (a, b) =
   {game with
-     board = SqSet.filter (fun sq -> sq <> (a, b) && sq <> (a+1, b)) game.board;
+     board = SqSet.filter (fun (c, d) -> b <> d || (c <> a && c <> a+1)) game.board;
      is_new = false;
      last_move = Some ((a, b), (a+1, b))}
 
@@ -159,10 +159,12 @@ let c_split game =
     in
     let region = !(pick_off_region game.board square (ref SqSet.empty))
     in
-    if SqSet.cardinal region == SqSet.cardinal game.board
+    let region_size, game_size = SqSet.cardinal region, SqSet.cardinal game.board
+    in
+    if region_size == game_size
         then None
         else let remains = SqSet.diff game.board region
-             in if SqSet.cardinal region <= SqSet.cardinal remains
+             in if region_size <= game_size - region_size
                 then Some (renormalize_game {game with board = region},
                            renormalize_game {game with board = remains})
                 else Some (renormalize_game {game with board = remains},
@@ -192,11 +194,10 @@ let min_breadth game =
     !minimum
 
 let calculate_center game =
-    let (x_sum, y_sum) =
-        SqSet.fold (fun (a, b) (c, d) -> (a + c, b + d))
+    let (x_sum, y_sum, count) =
+        SqSet.fold (fun (a, b) (c, d, count) -> (a + c, b + d, count + 1))
                    game.board
-                   (0, 0)
-    and count = SqSet.cardinal game.board
+                   (0, 0, 0)
     in
     if count = 0
         then (0, 0)
