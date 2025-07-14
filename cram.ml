@@ -19,6 +19,10 @@ let c_new_game a b =
     let board = Array.make a (1 lsl b - 1)
     in {board = board; is_new = true; last_move = None; height = a; width = b}
 
+let c_empty_game a b =
+    let board = Array.make a 0
+    in {board = board; is_new = false; last_move = None; height = a; width = b}
+
 let can_move_horiz game (a, b) =
     if b + 1 >= game.width
         then false
@@ -103,18 +107,21 @@ let is_square_on_board (r, c) game =
     r >= 0 && c >= 0 && r < game.height && c < game.width &&
     game.board.(r) land (1 lsl c) > 0
 
-let rec pick_off_region game square set_ref =
-    if SqSet.mem square !set_ref
-        then set_ref
+let add_square_to_board (r, c) game =
+    game.board.(r) <- game.board.(r) lor (1 lsl c)
+
+let rec pick_off_region game square set =
+    if is_square_on_board square set
+        then set
         else 
 
-   (set_ref := SqSet.add square !set_ref;
+   (add_square_to_board square set;
     let (a, b) = square in
     over [(a, b+1); (a, b-1); (a+1, b); (a-1, b)] (fun sq ->
         if is_square_on_board sq game
-            then ignore (pick_off_region game sq set_ref)
+            then ignore (pick_off_region game sq set)
     );
-    set_ref)
+    set)
 
 let does_have_at_most_two_neighbors (a, b) game =
     let count = ref 0
@@ -171,37 +178,52 @@ let make_board_from_set game set =
         set;
     arr
 
+let first_square_on_board game =
+    List.hd @@ all_squares_on_board game
+
+let count_squares_on_board game =
+    List.length @@ all_squares_on_board game
+
+let difference_of_boards game region =
+    let diff = Array.make game.height 0
+    in
+    for r = 0 to game.height - 1 do
+        diff.(r) <- game.board.(r) land lnot region.board.(r)
+    done;
+
+   {board = diff;
+    is_new = false;
+    width = game.width;
+    height = game.height;
+    last_move = None}
+
 let c_split game =
     if not (should_try_to_split game) then None else
 
-    let board_set = make_set_from_board game
+    let square = first_square_on_board game
     in
-    let square = SqSet.choose board_set
+    let region = (pick_off_region game square (c_empty_game game.height game.width))
     in
-    let region = !(pick_off_region game square (ref SqSet.empty))
-    in
-    let region_size, game_size = SqSet.cardinal region, SqSet.cardinal board_set
+    let region_size, game_size = count_squares_on_board region, count_squares_on_board game
     in
     if region_size == game_size
         then None
-        else let remains = SqSet.diff board_set region
+        else let remains = difference_of_boards game region
              in if region_size <= game_size - region_size
-                then Some ({game with board = make_board_from_set game region},
-                           {game with board = make_board_from_set game remains})
-                else Some ({game with board = make_board_from_set game remains},
-                           {game with board = make_board_from_set game region})
+                then Some ({game with board = region.board;  is_new = false},
+                           {game with board = remains.board; is_new = false})
+                else Some ({game with board = remains.board; is_new = false},
+                           {game with board = region.board;  is_new = false})
 
 
 let c_would_split game =
     if not (should_try_to_split game) then false else
 
-    let board_set = make_set_from_board game
+    let square = first_square_on_board game
     in
-    let square = SqSet.choose board_set
+    let region = (pick_off_region game square (c_empty_game game.height game.width))
     in
-    let region = !(pick_off_region game square (ref SqSet.empty))
-    in
-    if SqSet.cardinal region == SqSet.cardinal board_set
+    if count_squares_on_board region == count_squares_on_board game
         then false
         else true
 
