@@ -75,13 +75,16 @@ let rec faux_shuffle = function
 let all_squares_on_board game =
     let res = ref [] in
     for r = 0 to game.height - 1 do
-        let row = game.board.(r) in
-        for c = 0 to game.width - 1 do
-            if row land (1 lsl c) > 0
-                then res := (r, c) :: !res
+        let row = ref game.board.(r) in
+        let c = ref 0 in
+        while !row > 0 do
+            if !row land 1 > 0
+                then res := (r, !c) :: !res;
+            incr c;
+            row := !row lsr 1
         done
     done;
-    List.rev !res
+    !res
 
 let c_options_for_game game =
     let full_square_list = all_squares_on_board game
