@@ -96,7 +96,11 @@ let c_options_for_game game =
     let z = (List.map (c_after_horiz_move game) horiz_moves) @ (List.map (c_after_vert_move game) vert_moves)
     in faux_shuffle z
 
-let rec pick_off_region board square set_ref =
+let is_square_on_board (r, c) game =
+    r >= 0 && c >= 0 && r < game.height && c < game.width &&
+    game.board.(r) land (1 lsl c) > 0
+
+let rec pick_off_region game square set_ref =
     if SqSet.mem square !set_ref
         then set_ref
         else 
@@ -104,34 +108,18 @@ let rec pick_off_region board square set_ref =
    (set_ref := SqSet.add square !set_ref;
     let (a, b) = square in
     over [(a, b+1); (a, b-1); (a+1, b); (a-1, b)] (fun sq ->
-        if SqSet.mem sq board
-            then ignore (pick_off_region board sq set_ref)
+        if is_square_on_board sq game
+            then ignore (pick_off_region game sq set_ref)
     );
     set_ref)
 
-
-let does_have_at_most_two_neighbors (a, b) set =
+let does_have_at_most_two_neighbors (a, b) game =
     let count = ref 0
     in
     over [(a, b+1); (a, b-1); (a+1, b); (a-1, b)] (fun sq ->
-        if SqSet.mem sq set then incr count);
+        if is_square_on_board sq game then incr count);
     !count <= 2
 
-(*
-let is_row_missing game r =
-    let any = ref false in
-    for c = 1 to game.width do
-        any := !any || SqSet.mem (r, c) game.board
-    done;
-    !any
-
-let is_column_missing game c =
-    let any = ref false in
-    for r = 1 to game.height do
-        any := !any || SqSet.mem (r, c) game.board
-    done;
-    !any
-*)
 
 let make_set_from_board game =
     let set = ref SqSet.empty in
@@ -144,18 +132,25 @@ let make_set_from_board game =
     done;
     !set
 
+let does_board_have_at_least game max =
+    let count = ref 0 in
+    for r = 0 to game.height - 1 do
+        let row = ref game.board.(r) in
+        while !row > 0 && !count < max do
+            row := !row land (!row - 1);
+            incr count
+        done
+    done;
+    !count >= max
+
 let should_try_to_split game =
-    let board_set = make_set_from_board game in
-
-    if SqSet.cardinal board_set < 5 || game.last_move == None
-        then false
-        else
-
     match game.last_move with
         | None -> false
         | Some ((a, b), (c, d)) ->
-            does_have_at_most_two_neighbors (a, b) board_set
-         || does_have_at_most_two_neighbors (c, d) board_set
+            (does_have_at_most_two_neighbors (a, b) game
+          || does_have_at_most_two_neighbors (c, d) game)
+          && does_board_have_at_least game 5
+          && game.last_move <> None
 
 let rec set_map fn set =
     if SqSet.is_empty set
@@ -180,7 +175,7 @@ let c_split game =
     in
     let square = SqSet.choose board_set
     in
-    let region = !(pick_off_region board_set square (ref SqSet.empty))
+    let region = !(pick_off_region game square (ref SqSet.empty))
     in
     let region_size, game_size = SqSet.cardinal region, SqSet.cardinal board_set
     in
@@ -201,7 +196,7 @@ let c_would_split game =
     in
     let square = SqSet.choose board_set
     in
-    let region = !(pick_off_region board_set square (ref SqSet.empty))
+    let region = !(pick_off_region game square (ref SqSet.empty))
     in
     if SqSet.cardinal region == SqSet.cardinal board_set
         then false
