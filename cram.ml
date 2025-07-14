@@ -179,10 +179,32 @@ let make_board_from_set game set =
     arr
 
 let first_square_on_board game =
-    List.hd @@ all_squares_on_board game
+    let sq = ref None in
+    for r = 0 to game.height - 1 do
+        if !sq == None then
+           (let row = game.board.(r) in
+            for c = 0 to game.width - 1 do
+                if row land (1 lsl c) > 0
+                    then sq := Some (r, c)
+            done)
+    done;
 
+    match !sq with
+        | Some x -> x
+        | None -> (0, 0)
+
+
+let bit_count_array = [| 0; 1; 1; 2; 1; 2; 2; 3 |]
 let count_squares_on_board game =
-    List.length @@ all_squares_on_board game
+    let count = ref 0 in
+    for r = 0 to game.height - 1 do
+        let row = ref game.board.(r) in
+        while !row > 0 do
+            count := !count + bit_count_array.(!row land 7);
+            row := !row lsr 3
+        done
+    done;
+    !count
 
 let difference_of_boards game region =
     let diff = Array.make game.height 0
