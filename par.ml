@@ -65,6 +65,14 @@ let push_onto list_ref elt =
     list_ref := elt :: !list_ref
 
 
+let clean_up_child_processes active_procs parent_pid =
+    if Unix.getpid () = parent_pid
+        then List.iter (fun pid ->
+                            (try Unix.kill pid 15 with _ -> ());
+                            try ignore (Unix.wait ()) with _ -> ())
+                       !active_procs
+
+
 let par_list_exists_new fn list length max_procs verbose =
     if max_procs = 1
         then List.exists fn list
@@ -84,6 +92,9 @@ let par_list_exists_new fn list length max_procs verbose =
                         | _ -> exit_with_failure ())
     in
     if verbose then Printf.printf "  %d left...   \r%!" !elements_left;
+
+    at_exit (fun () -> clean_up_child_processes active_procs (Unix.getpid ()));
+
     List.iter (fun elt ->
         if !any
             then ()
@@ -97,6 +108,7 @@ let par_list_exists_new fn list length max_procs verbose =
         handle_child ()
     done;
     List.iter (fun pid -> (try Unix.kill pid 15 with _ -> ()); ignore (Unix.wait ())) !active_procs;
+    active_procs := [];
     if verbose then Printf.printf "\n%!";
     !any
 
