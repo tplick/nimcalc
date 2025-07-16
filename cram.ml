@@ -292,7 +292,43 @@ let c_sorted_options game =
     pull_to_front (fun opt -> c_would_split opt) y
 
 
+let cram_nimber_of_game a b =
+    let fn = if a > 0 && b > 0 && (a land 1) + (b land 1) = 1
+                then nonzero_nimber_of_game
+                else nimber_of_game
+    in  fn (c_new_game a b) c_sorted_options c_split (fun x -> x.board)
+
+let run_test r c target_value =
+    let computed_value = cram_nimber_of_game r c in
+    if target_value = computed_value
+        then  Printf.printf "%d x %d:\t%d\n%!" r c computed_value
+        else (Printf.printf "%d x %d:\texpected %d, got %d\n" r c target_value computed_value;
+              Printf.printf "Test failed.\n";
+              exit 1)
+
+
+let run_tests () =
+    for c = 0 to 12 do
+        run_test 2 c (c land 1)
+    done;
+
+    let three_results = [0; 1; 1; 0; 1; 1; 4; 1; 3; 1] in
+    for c = 0 to 9 do
+        run_test 3 c (List.nth three_results c)
+    done;
+
+    run_test 4 4 0;
+    run_test 4 5 2;
+    run_test 4 6 0;
+    run_test 5 5 0;
+
+    Printf.printf "All cram tests passed!\n";
+    exit 0
+
+
 let _ =
+    if Sys.argv.(1) = "test" then run_tests ();
+
     let a = int_of_string Sys.argv.(1) and b = int_of_string Sys.argv.(2)
     in
     let fn = if a > 0 && b > 0 && (a land 1) + (b land 1) = 1
