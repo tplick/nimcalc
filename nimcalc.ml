@@ -116,6 +116,12 @@ is_game_a_win (Game (game, nimheap)) optgen splitter tts hasher nimval_tts =
         | None -> List.exists (fun opt -> is_game_a_loss opt optgen splitter (List.tl tts) hasher (nimval_tts)) options
         | Some (g, h) ->
             incr split_counter;
+            match look_up_in_table (List.hd nimval_tts) (hasher h) with
+                | Some v ->
+            let h_nimber = v
+            in
+            is_game_a_win (Game (g, h_nimber lxor nimheap)) optgen splitter tts hasher nimval_tts
+                | None ->
             let g_nimber = nimber_of_game' g 0 optgen splitter tts hasher nimval_tts
             in
             is_game_a_win (Game (h, g_nimber lxor nimheap)) optgen splitter tts hasher nimval_tts)
