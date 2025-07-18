@@ -29,11 +29,26 @@ let table_mask =
         let n = int_of_string (Unix.getenv "NIMCALC_TABLE_SIZE")
         in let mask = round_up (n - 1)
         in if n <= 0 then raise (Invalid_argument "");
-        if verbose then Printf.printf "Using table size of %d.\n" (mask + 1);
+        if verbose then Printf.printf "Using main table size of %d.\n" (mask + 1);
         mask
     with e ->
-        if verbose then Printf.printf "Using default table size of 8192.\n";
+        if verbose then Printf.printf "Using default main table size of 8192.\n";
         8191
+
+let tt_table_mask = table_mask
+
+let nimval_table_factor =
+    try
+        let n = int_of_string (Unix.getenv "NIMCALC_ALT_TABLE_FACTOR")
+        in
+        if not (n > 0 && n land (n - 1) = 0) then raise (Invalid_argument "");
+        if verbose then Printf.printf "Using alt table factor of %d.\n" n;
+        n
+    with e ->
+        if verbose then Printf.printf "Using default alt table factor of 8.\n";
+        8
+
+let nv_table_mask = nimval_table_factor * table_mask + (nimval_table_factor - 1)
 
 
 let null_splitter _ = None
@@ -78,23 +93,23 @@ let rec options_for_compound optgen topgame =
 
 
 
-let new_table () =
-    Array.make (table_mask + 1) None
+let new_table mask =
+    Array.make (mask + 1) None
 
-let get_or_create_tt tt =
+let get_or_create_tt tt mask =
     match !tt with
         | Some x -> x
-        | None -> let new_tt = new_table ()
+        | None -> let new_tt = new_table mask
                   in tt := Some new_tt;
                      new_tt
 
-let add_to_table tt game value =
+let add_to_table tt mask game value =
     let h = Hashtbl.hash_param 256 256 game
-    in (get_or_create_tt tt).(h land table_mask) <- Some (h, game, value)
+    in (get_or_create_tt tt mask).(h land mask) <- Some (h, game, value)
 
-let look_up_in_table tt game =
+let look_up_in_table tt mask game =
     let h = Hashtbl.hash_param 256 256 game
-    in match (get_or_create_tt tt).(h land table_mask) with
+    in match (get_or_create_tt tt mask).(h land mask) with
         | Some (h2, k, v) when h = h2 && k = game ->
             incr hit_counter; Some v
         | _ -> None
@@ -116,7 +131,7 @@ is_game_a_win (Game (game, nimheap)) optgen splitter tts hasher nimval_tts =
         | None -> List.exists (fun opt -> is_game_a_loss opt optgen splitter (List.tl tts) hasher (nimval_tts)) options
         | Some (g, h) ->
             incr split_counter;
-            match look_up_in_table (List.hd nimval_tts) (hasher h) with
+            match look_up_in_table (List.hd nimval_tts) nv_table_mask (hasher h) with
                 | Some v ->
             let h_nimber = v
             in
@@ -132,15 +147,15 @@ is_game_a_win (Game (game, nimheap)) optgen splitter tts hasher nimval_tts =
         else
 
     let hashed_game = hasher game in
-    match look_up_in_table (List.hd nimval_tts) (hashed_game) with
+    match look_up_in_table (List.hd nimval_tts) nv_table_mask (hashed_game) with
         | Some v -> v <> nimheap
         | None ->
-    match look_up_in_table (List.hd tts) (hashed_game, nimheap) with
+    match look_up_in_table (List.hd tts) tt_table_mask (hashed_game, nimheap) with
         | Some v -> v
         | None ->
     let value = compute ()
-    in add_to_table (List.hd tts) (hashed_game, nimheap) value;
-    (if value == false then add_to_table (List.hd nimval_tts) (hashed_game) nimheap);
+    in add_to_table (List.hd tts) tt_table_mask (hashed_game, nimheap) value;
+    (if value == false then add_to_table (List.hd nimval_tts) nv_table_mask (hashed_game) nimheap);
     value
 
 and is_game_a_loss game optgen splitter tt hasher nimval_tts =
@@ -170,7 +185,7 @@ and nimber_of_game_top' game candidate optgen splitter hasher nimval_tts =
     List.iter
         (fun table ->
             for i = 0 to candidate - 1 do
-                add_to_table table (hasher game, i) true
+                add_to_table table tt_table_mask (hasher game, i) true
             done)
         tt;
     if is_game_a_loss_top (Game (game, candidate)) optgen splitter tt hasher nimval_tts
@@ -180,10 +195,10 @@ and nimber_of_game_top' game candidate optgen splitter hasher nimval_tts =
 
 
 let nimber_of_game game optgen splitter hasher =
-    nimber_of_game_top' game 0 (options_for_compound optgen) (if nosplit then null_splitter else splitter) hasher (new_table_list 100 [])
+    nimber_of_game_top' game 0 (options_for_compound optgen) (if nosplit then null_splitter else splitter) hasher (new_table_list 1 [])
 
 let nonzero_nimber_of_game game optgen splitter hasher =
-    nimber_of_game_top' game 1 (options_for_compound optgen) (if nosplit then null_splitter else splitter) hasher (new_table_list 100 [])
+    nimber_of_game_top' game 1 (options_for_compound optgen) (if nosplit then null_splitter else splitter) hasher (new_table_list 1 [])
 
 
 
