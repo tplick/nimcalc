@@ -153,6 +153,20 @@ is_game_a_win (Game (game, nimheap)) optgen splitter tts hasher nimval_tts =
     match look_up_in_table (List.hd tts) tt_table_mask (hashed_game, nimheap) with
         | Some v -> v
         | None ->
+
+    if List.exists
+        (fun (Game (g, heap)) ->
+            let ghash = hasher g in
+            match look_up_in_table (List.hd tts) tt_table_mask (ghash, heap) with
+                | Some false -> true
+                | _ ->
+            match look_up_in_table (List.hd nimval_tts) nv_table_mask ghash with
+                | Some v -> v == heap
+                | None -> false)
+        options
+            then true
+            else
+
     let value = compute ()
     in add_to_table (List.hd tts) tt_table_mask (hashed_game, nimheap) value;
     (if value == false then add_to_table (List.hd nimval_tts) nv_table_mask (hashed_game) nimheap);
