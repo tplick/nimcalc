@@ -239,15 +239,15 @@ let c_split game =
 
 
 let c_would_split game =
-    if not (should_try_to_split game) then false else
+    if not (should_try_to_split game) then 0 else
 
     let square = first_square_on_board game
     in
     let region = (pick_off_region game square (c_empty_game game.height game.width))
     in
-    if count_squares_on_board region == count_squares_on_board game
-        then false
-        else true
+    let part  = count_squares_on_board region and
+        whole = count_squares_on_board game
+    in min part (whole - part)
 
 
 let calculate_center game =
@@ -289,7 +289,11 @@ let c_sorted_options game =
     in
     let y = List.map (fun (a, b) -> b) s
     in
-    pull_to_front (fun opt -> c_would_split opt) y
+    let z = List.map (fun opt -> (c_would_split opt, opt)) y
+    in
+    let w = List.sort (fun (a, _) (b, _) -> b - a) z
+    in
+    List.map (fun (_, x) -> x) w
 
 
 let cram_nimber_of_game a b =
