@@ -296,6 +296,54 @@ let c_sorted_options game =
     List.map (fun (_, x) -> x) w
 
 
+
+let cram_db = Bytes.make (1 lsl 24) (char_of_int 255)
+
+let shift_game_to_left game =
+    let squares = all_squares_on_board game in
+    let c_min = List.fold_left (fun acc (_, c) -> min acc c) 1000 squares and
+        c_max = List.fold_left (fun acc (_, c) -> max acc c) 0 squares
+    in
+    for r = 0 to game.height - 1 do
+        game.board.(r) <- game.board.(r) lsr c_min
+    done;
+    c_max - c_min + 1
+
+let make_code_from_board game width =
+    let code = ref 0 in
+    for r = 0 to game.height - 1 do
+        code := !code lsl width;
+        code := !code + game.board.(r)
+    done;
+    !code
+
+let report_board_from_table board rows cols nimval =
+    let game = {board = board; height = rows; width = cols; is_new = false; last_move = None} in
+    let new_width = shift_game_to_left game in
+    if new_width <= 6
+        then (let code = make_code_from_board game 6
+              in Printf.printf "%d: \t%d\n" code nimval;
+              Bytes.set cram_db code (char_of_int nimval));
+    new_width <= 6
+
+let report_nimval_table table0 rows cols =
+    let count = ref 0 in
+    match !table0 with
+        | None -> ()
+        | Some table ->
+            Array.iter
+                (fun entry ->
+                    match entry with
+                        | None -> ()
+                        | Some (_, k, v) -> (if report_board_from_table k rows cols v
+                                                then incr count))
+                table;
+    Printf.printf "Reported %d entries from nim-value table.\n" !count;
+
+    let out = open_out "cram_generated.db" in
+    Printf.fprintf out "%s" (Bytes.to_string cram_db);
+    close_out out
+
 let cram_nimber_of_game a b =
     let fn = if a > 0 && b > 0 && (a land 1) + (b land 1) = 1
                 then nonzero_nimber_of_game
@@ -333,19 +381,22 @@ let run_tests () =
 let _ =
     if Sys.argv.(1) = "test" then run_tests ();
 
-    let a = int_of_string Sys.argv.(1) and b = int_of_string Sys.argv.(2)
+    let a = int_of_string Sys.argv.(1) and
+        b = int_of_string Sys.argv.(2) and
+        nimval_tts = new_table_list 1 []
     in
     let fn = if a > 0 && b > 0 && (a land 1) + (b land 1) = 1
-                then nonzero_nimber_of_game
-                else nimber_of_game
+                then nonzero_nimber_of_game_with_nimval_tts
+                else nimber_of_game_with_nimval_tts
     in
     let (nimber, time) = with_time
-            (fun () -> fn (c_new_game a b) c_sorted_options c_split (fun x -> x.board))
+            (fun () -> fn (c_new_game a b) c_sorted_options c_split (fun x -> x.board) nimval_tts)
     in
     Printf.printf "%d x %d: %d  (%.2f sec, %d positions, %d HT hits, %d splits)\n%!"
         a b nimber
         time
         !call_counter
         !hit_counter
-        !split_counter
+        !split_counter;
+    report_nimval_table (List.hd nimval_tts) a b
 

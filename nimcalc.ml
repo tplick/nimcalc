@@ -208,12 +208,17 @@ and nimber_of_game_top' game candidate optgen splitter hasher nimval_tts =
 
 
 
+let nimber_of_game_with_nimval_tts game optgen splitter hasher nimval_tts =
+    nimber_of_game_top' game 0 (options_for_compound optgen) (if nosplit then null_splitter else splitter) hasher nimval_tts
+
+let nonzero_nimber_of_game_with_nimval_tts game optgen splitter hasher nimval_tts =
+    nimber_of_game_top' game 1 (options_for_compound optgen) (if nosplit then null_splitter else splitter) hasher nimval_tts
+
 let nimber_of_game game optgen splitter hasher =
-    nimber_of_game_top' game 0 (options_for_compound optgen) (if nosplit then null_splitter else splitter) hasher (new_table_list 1 [])
+    nimber_of_game_with_nimval_tts game optgen splitter hasher (new_table_list 1 [])
 
 let nonzero_nimber_of_game game optgen splitter hasher =
-    nimber_of_game_top' game 1 (options_for_compound optgen) (if nosplit then null_splitter else splitter) hasher (new_table_list 1 [])
-
+    nonzero_nimber_of_game_with_nimval_tts game optgen splitter hasher (new_table_list 1 [])
 
 
 let with_time fn =
