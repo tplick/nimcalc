@@ -306,7 +306,8 @@ let true_width_of_game game =
     c_max - c_min + 1
 
 let cram_db =
-    let inn = open_in "cram4by6.db" in
+    let directory_name = Filename.dirname Sys.argv.(0) in
+    let inn = open_in (directory_name ^ "/cram4by6.db") in
     let s = input_line inn in
     close_in inn;
     s
