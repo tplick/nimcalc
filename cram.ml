@@ -13,15 +13,15 @@ let over list fn = List.iter fn list
 
 
 type cram_game = {board: int array; is_new: bool; last_move: ((int * int) * (int * int)) option;
-            height: int; width: int}
+            height: int; width: int; nimber: int option}
 
 let c_new_game a b =
     let board = Array.make a (1 lsl b - 1)
-    in {board = board; is_new = true; last_move = None; height = a; width = b}
+    in {board = board; is_new = true; last_move = None; height = a; width = b; nimber = None}
 
 let c_empty_game a b =
     let board = Array.make a 0
-    in {board = board; is_new = false; last_move = None; height = a; width = b}
+    in {board = board; is_new = false; last_move = None; height = a; width = b; nimber = None}
 
 let can_move_horiz game (a, b) =
     if b + 1 >= game.width
@@ -217,7 +217,8 @@ let difference_of_boards game region =
     is_new = false;
     width = game.width;
     height = game.height;
-    last_move = None}
+    last_move = None;
+    nimber = None}
 
 let c_split game =
     if not (should_try_to_split game) then None else
@@ -280,7 +281,82 @@ let is_row_or_column_missing game =
     is_column_missing game c1 || (c1 <> c2 && is_column_missing game c2)
 *)
 
+let make_cram_game_for_nimber v =
+   {board = [| 0 |];
+    height = 1;
+    width = 1;
+    is_new = false;
+    last_move = None;
+    nimber = Some v}
+
+let make_nimber_options_for_game v =
+    let res = ref [] in
+    for n = 0 to v - 1 do
+        push_onto (make_cram_game_for_nimber n) res
+    done;
+    !res
+
+let true_width_of_game game =
+    let squares = all_squares_on_board game in
+    let c_min = List.fold_left (fun acc (_, c) -> min acc c) 1000 squares and
+        c_max = List.fold_left (fun acc (_, c) -> max acc c) 0 squares in
+    c_max - c_min + 1
+
+let cram_db =
+    let inn = open_in "cram4by6.db" in
+    let s = input_line inn in
+    close_in inn;
+    s
+
+let make_shifted_game game =
+    let squares = all_squares_on_board game in
+    let c_min = List.fold_left (fun acc (_, c) -> min acc c) 1000 squares and
+        new_game = {game with board = Array.make game.height 0} in
+    for r = 0 to game.height - 1 do
+        new_game.board.(r) <- game.board.(r) lsr c_min
+    done;
+    new_game
+
+let make_code_from_board game width =
+    let code = ref 0 in
+    for r = 0 to game.height - 1 do
+        code := !code lsl width;
+        code := !code + game.board.(r)
+    done;
+    !code
+
+let look_up_game_in_db game =
+    if game.height <= 4 && true_width_of_game game <= 6
+        then (let shifted = make_shifted_game game in
+              let code = make_code_from_board shifted 6 in
+              let v = int_of_char cram_db.[code] in
+              if v < 255 then Some v else None)
+        else
+            None
+
+let cram_heap_1 = [c_new_game 1 1]
+let cram_heap_2 = [c_new_game 1 1; c_new_game 1 2]
+let cram_heap_3 = [c_new_game 1 1; c_new_game 1 2; c_new_game 1 4]
+
 let c_sorted_options game =
+(*    match game.nimber with
+        | Some v -> make_nimber_options_for_game v
+        | None ->
+    match look_up_game_in_db game with
+        | Some v -> (Printf.printf "Found %d in lookup!\n" v; make_nimber_options_for_game v)
+        | None ->
+*)
+
+    if game.height == 1 && game.width == 1
+        then []
+        else
+    match look_up_game_in_db game with
+        | Some 0 -> []
+        | Some 1 -> cram_heap_1
+        | Some 2 -> cram_heap_2
+        | Some 3 -> cram_heap_3
+        | _ ->
+
     let opts = c_options_for_game game
     in
     let dec = List.map (fun opt -> (distance_of_last_move_from_center opt, opt)) opts
@@ -340,7 +416,7 @@ let _ =
                 else nimber_of_game
     in
     let (nimber, time) = with_time
-            (fun () -> fn (c_new_game a b) c_sorted_options c_split (fun x -> x.board))
+            (fun () -> fn (c_new_game a b) c_sorted_options c_split (fun x -> x.board, x.nimber))
     in
     Printf.printf "%d x %d: %d  (%.2f sec, %d positions, %d HT hits, %d splits)\n%!"
         a b nimber
