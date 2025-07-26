@@ -154,6 +154,9 @@ let does_board_have_at_least game max =
     !count >= max
 
 let should_try_to_split game =
+    if game.nimber <> None
+        then false
+        else
     match game.last_move with
         | None -> false
         | Some ((a, b), (c, d)) ->
@@ -282,7 +285,7 @@ let is_row_or_column_missing game =
 *)
 
 let make_cram_game_for_nimber v =
-   {board = [| 0 |];
+   {board = [| 1 |];
     height = 1;
     width = 1;
     is_new = false;
@@ -326,7 +329,8 @@ let make_code_from_board game width =
     !code
 
 let look_up_game_in_db game =
-    if game.height <= 4 && true_width_of_game game <= 6
+    if (game.height <= 4 || (game.height == 5 && game.board.(0) == 0)) &&
+                true_width_of_game game <= 6
         then (let shifted = make_shifted_game game in
               let code = make_code_from_board shifted 6 in
               let v = int_of_char cram_db.[code] in
@@ -334,28 +338,13 @@ let look_up_game_in_db game =
         else
             None
 
-let cram_heap_1 = [c_new_game 1 1]
-let cram_heap_2 = [c_new_game 1 1; c_new_game 1 2]
-let cram_heap_3 = [c_new_game 1 1; c_new_game 1 2; c_new_game 1 4]
-
 let c_sorted_options game =
-(*    match game.nimber with
+    match game.nimber with
         | Some v -> make_nimber_options_for_game v
         | None ->
     match look_up_game_in_db game with
-        | Some v -> (Printf.printf "Found %d in lookup!\n" v; make_nimber_options_for_game v)
+        | Some v -> (make_nimber_options_for_game v)
         | None ->
-*)
-
-    if game.height == 1 && game.width == 1
-        then []
-        else
-    match look_up_game_in_db game with
-        | Some 0 -> []
-        | Some 1 -> cram_heap_1
-        | Some 2 -> cram_heap_2
-        | Some 3 -> cram_heap_3
-        | _ ->
 
     let opts = c_options_for_game game
     in
@@ -376,7 +365,7 @@ let cram_nimber_of_game a b =
     let fn = if a > 0 && b > 0 && (a land 1) + (b land 1) = 1
                 then nonzero_nimber_of_game
                 else nimber_of_game
-    in  fn (c_new_game a b) c_sorted_options c_split (fun x -> x.board)
+    in  fn (c_new_game a b) c_sorted_options c_split (fun x -> x.board, x.nimber)
 
 let run_test r c target_value =
     let computed_value = cram_nimber_of_game r c in
