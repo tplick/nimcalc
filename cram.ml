@@ -396,7 +396,20 @@ let run_tests () =
     exit 0
 
 
+let checksum_db () =
+    let expected_digest = "2652a86f0d14939a73b56eff4f59c061d8218ef6e68313854f1d47ae97d836bf0d8feca891e2a9ad66ead1a95ea00b9311e845aba59708d8af3ab2be27753283" and
+        computed_digest = Digest.BLAKE512.to_hex @@ Digest.BLAKE512.string cram_db in
+    if expected_digest <> computed_digest
+        then (Printf.printf "Error: Cram database cram4by6.db seems to be corrupted.\n";
+              Printf.printf "       Expected BLAKE512 digest %s, got %s.\n"
+                            expected_digest
+                            computed_digest;
+              exit 1)
+
+
 let _ =
+    checksum_db ();
+
     if Sys.argv.(1) = "test" then run_tests ();
 
     let a = int_of_string Sys.argv.(1) and b = int_of_string Sys.argv.(2)
