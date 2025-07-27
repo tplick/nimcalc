@@ -415,16 +415,24 @@ let make_game_from_code code0 =
     {game with is_new = false}
 
 
-let run_db_tests () =
-    (if not no_db
-        then (Printf.printf "Error: you must run this test with NIMCALC_NO_DB set.\n";
-              exit 1));
+let rec mex_of_list lst target =
+    let ys, zs = List.partition ((==) target) lst in
+    match ys with
+        | [] -> target
+        | _ -> mex_of_list zs (target + 1)
 
+let nimber_of_game_based_on_db game =
+    let options = c_options_for_game game in
+    let nimber_options = List.map look_up_game_in_db options in
+    let nimbers = List.map (fun n -> match n with Some v -> v | None -> invalid_arg "game not found in db") nimber_options in
+    mex_of_list nimbers 0
+
+let run_db_tests () =
     for code = 0 to 1 lsl 24 - 1 do
         if cram_db.[code] <> char_of_int 255
             then (let game = make_game_from_code code in
                   let expected_value = int_of_char cram_db.[code] and
-                      computed_value = nimber_of_game game c_sorted_options c_split (fun x -> x.board, x.nimber)
+                      computed_value = nimber_of_game_based_on_db game
                   in if expected_value = computed_value
                         then Printf.printf "  Done %d of %d...\r%!" (code / 10000 * 10000) (1 lsl 24)
                         else (Printf.printf "Mismatch for code %d: got %d, expected %d.\n"
