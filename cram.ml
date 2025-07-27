@@ -1,6 +1,14 @@
 
 open Nimcalc
 
+let no_db =
+    try
+        ignore (Unix.getenv "NIMCALC_NO_DB");
+        true
+    with e ->
+        false
+
+
 module SqSet = Set.Make (struct
     type t = int * int
 
@@ -330,7 +338,8 @@ let make_code_from_board game width =
     !code
 
 let look_up_game_in_db game =
-    if (game.height <= 4 || (game.height == 5 && game.board.(0) == 0)) &&
+    if not no_db &&
+                (game.height <= 4 || (game.height == 5 && game.board.(0) == 0)) &&
                 true_width_of_game game <= 6
         then (let shifted = make_shifted_game game in
               let code = make_code_from_board shifted 6 in
@@ -396,6 +405,37 @@ let run_tests () =
     exit 0
 
 
+let make_game_from_code code0 =
+    let game = c_new_game 4 6 and
+        code = ref code0 in
+    for r = 0 to 3 do
+        game.board.(r) <- !code land 63;
+        code := !code lsr 6
+    done;
+    {game with is_new = false}
+
+
+let run_db_tests () =
+    (if not no_db
+        then (Printf.printf "Error: you must run this test with NIMCALC_NO_DB set.\n";
+              exit 1));
+
+    for code = 0 to 1 lsl 24 - 1 do
+        if cram_db.[code] <> char_of_int 255
+            then (let game = make_game_from_code code in
+                  let expected_value = int_of_char cram_db.[code] and
+                      computed_value = nimber_of_game game c_sorted_options c_split (fun x -> x.board, x.nimber)
+                  in if expected_value = computed_value
+                        then Printf.printf "  Done %d of %d...\r%!" (code / 10000 * 10000) (1 lsl 24)
+                        else (Printf.printf "Mismatch for code %d: got %d, expected %d.\n"
+                                            code computed_value expected_value;
+                              Printf.printf "Db tests failed.\n";
+                              exit 1))
+    done;
+    Printf.printf "\nAll db tests passed!\n";
+    exit 0
+
+
 let checksum_db () =
     let expected_digest = "2652a86f0d14939a73b56eff4f59c061d8218ef6e68313854f1d47ae97d836bf0d8feca891e2a9ad66ead1a95ea00b9311e845aba59708d8af3ab2be27753283" and
         computed_digest = Digest.BLAKE512.to_hex @@ Digest.BLAKE512.string cram_db in
@@ -411,6 +451,7 @@ let _ =
     checksum_db ();
 
     if Sys.argv.(1) = "test" then run_tests ();
+    if Sys.argv.(1) = "testdb" then run_db_tests ();
 
     let a = int_of_string Sys.argv.(1) and b = int_of_string Sys.argv.(2)
     in
