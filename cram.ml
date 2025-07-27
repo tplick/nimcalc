@@ -436,8 +436,26 @@ let run_db_tests () =
     exit 0
 
 
+let make_db () =
+    let db = Bytes.make (1 lsl 24) (char_of_int 255) in
+    for code = 1 lsl 24 - 1 downto 0 do
+        let game = make_game_from_code code in
+        let computed_value = nimber_of_game game c_sorted_options c_split (fun x -> x.board, x.nimber) in
+        Bytes.set db code (char_of_int computed_value);
+        Printf.printf "  %d of %d remaining...    \r%!" (code / 1000 * 1000) (1 lsl 24)
+    done;
+
+    Printf.printf "\nWriting db out to cram_computed.db...\n";
+    let out = open_out "cram_computed.db" in
+    Printf.fprintf out "%s" (Bytes.to_string db);
+    close_out out;
+
+    Printf.printf "Done.\n";
+    exit 0
+
+
 let checksum_db () =
-    let expected_digest = "2652a86f0d14939a73b56eff4f59c061d8218ef6e68313854f1d47ae97d836bf0d8feca891e2a9ad66ead1a95ea00b9311e845aba59708d8af3ab2be27753283" and
+    let expected_digest = "54bcd287471df5d24e7862a956615d3f0a4d9d844d2e7e623491c8e6e4525e7879d199891c3398b7b3c1bf1f560d84e7c61c6962c7a4ea363faeb7968b35efa1" and
         computed_digest = Digest.BLAKE512.to_hex @@ Digest.BLAKE512.string cram_db in
     if expected_digest <> computed_digest
         then (Printf.printf "Error: Cram database cram4by6.db seems to be corrupted.\n";
@@ -452,6 +470,7 @@ let _ =
 
     if Sys.argv.(1) = "test" then run_tests ();
     if Sys.argv.(1) = "testdb" then run_db_tests ();
+    if Sys.argv.(1) = "makedb" then make_db ();
 
     let a = int_of_string Sys.argv.(1) and b = int_of_string Sys.argv.(2)
     in
