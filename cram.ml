@@ -434,7 +434,8 @@ let run_db_tests () =
                   let expected_value = int_of_char cram_db.[code] and
                       computed_value = nimber_of_game_based_on_db game
                   in if expected_value = computed_value
-                        then Printf.printf "  Done %d of %d...\r%!" (code / 10000 * 10000) (1 lsl 24)
+                        then (if code mod 10000 = 0
+                                  then Printf.printf "  Done %d of %d...\r%!" code (1 lsl 24))
                         else (Printf.printf "Mismatch for code %d: got %d, expected %d.\n"
                                             code computed_value expected_value;
                               Printf.printf "Db tests failed.\n";
@@ -450,7 +451,8 @@ let make_db () =
         let game = make_game_from_code code in
         let computed_value = nimber_of_game game c_sorted_options c_split (fun x -> x.board, x.nimber) in
         Bytes.set db code (char_of_int computed_value);
-        Printf.printf "  %d of %d remaining...    \r%!" (code / 1000 * 1000) (1 lsl 24)
+        (if code mod 1000 = 0
+             then Printf.printf "  %d of %d remaining...    \r%!" code (1 lsl 24))
     done;
 
     Printf.printf "\nWriting db out to cram_computed.db...\n";
