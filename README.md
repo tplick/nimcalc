@@ -4,11 +4,11 @@ Tom Plick (tomplick@gmail.com)
 
 nimcalc, the "nimber calculator," is a software package designed to compute the nim-values of impartial games.  So far, three games are implemented:
 
-- Cram, a game of dominoes played on a square grid.  See https://en.wikipedia.org/wiki/Cram_(game) for information on this game.  This game is implemented in cram.ml .
+- Cram, a game of dominoes played on a square grid.  See https://en.wikipedia.org/wiki/Cram_(game) for information on this game.  This game is implemented in cram.ml .  For added speed, the nim-values of all boards up to 4 x 6 have been precomputed and stored in the file cram4by6.db .
 
 - A two-player version of the n-queens problem.  In this game, players alternate placing queens on an n x n chessboard, such that no queen attacks any other.  The player left with no move is the loser.  This game is implemented in queens.ml .
 
-- An alternate version of Nim, in which a valid move consists of removing beans from one heap or the same number of beans from both heaps.  This game is implemented in beans.ml .
+- Wythoff's game, a variant of Nim.  There are two heaps of beans, and a valid move consists of removing beans from one heap or the same number of beans from both heaps.  This game is implemented in beans.ml .  If you want to implement a new game in nimcalc, looking at the implementation of this game is a good place to start.
 
 nimcalc is implemented in OCaml.  To run the code, follow these steps:
 
@@ -43,6 +43,8 @@ You can modify the behavior of the program by setting environment variables.
 Setting NIMCALC_VERBOSE=1 will cause the program to print out information as it is running.
 
 Setting NIMCALC_PROCS=[n] will make the program use n subprocesses.  Ideally this will reduce the time taken by a factor of n, but some circumstances can cause the speedup to be less.
+
+Setting NIMCALC_TABLE_SIZE=[n] sets the size of each transposition table to n entries.  The value of n is rounded up to the nearest power of two.  Each level of evaluation in the tree is assigned its own transposition table.  The default size is 8192 and is suitable for running experiments on a typical laptop or desktop.  If you are performing a long-running computation on a powerful server with a large amount of free RAM, it is suggested to set NIMCALC_TABLE_SIZE to 64000.  This often reduces running time by a large amount, close to 50% in some cases.
 
 ```bash
 tom@Toms-MacBook-Air nimcalc % time NIMCALC_VERBOSE=1 ./cram 4 7
