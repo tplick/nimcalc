@@ -15,7 +15,7 @@ let b_options (x, y) =
     for k = 1 to (min x y) do
         push_onto options (x-k, y-k)
     done;
-    !options
+    OptionList !options
 
 let _ =
     let x = int_of_string Sys.argv.(1)

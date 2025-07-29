@@ -79,17 +79,23 @@ let shuffle list =
 
 
 type 'a game = Game of ('a * int)
+type 'a option_list = OptionList of 'a | DirectNimber of int
 
 let rec options_for_compound optgen topgame =
     match topgame with 
         | Game (game, nimheap) ->
-    let options = ref [] and suboptions = optgen game
+    let options = ref [] and
+        suboptions_raw = optgen game
     in
+    match suboptions_raw with
+        | DirectNimber n -> DirectNimber (n lxor nimheap)
+        | OptionList suboptions ->
+
     List.iter (fun g -> push_onto (Game (g, nimheap)) options) suboptions;
     for i = 0 to (nimheap - 1) do
         push_onto (Game (game, i)) options
     done;
-    List.rev !options
+    OptionList (List.rev !options)
 
 
 
@@ -124,8 +130,9 @@ let rec
 is_game_a_win (Game (game, nimheap)) optgen splitter tts hasher nimval_tts =
     incr call_counter;
 
-    let options = optgen (Game (game, nimheap))
-    in
+    match optgen (Game (game, nimheap)) with
+        | DirectNimber n -> n <> 0
+        | OptionList options ->
 
     let compute () = (match splitter game with
         | None -> List.exists (fun opt -> is_game_a_loss opt optgen splitter (List.tl tts) hasher (nimval_tts)) options
@@ -176,11 +183,12 @@ and is_game_a_loss game optgen splitter tt hasher nimval_tts =
     not (is_game_a_win game optgen splitter tt hasher nimval_tts)
 
 and is_game_a_loss_top game optgen splitter tt hasher nimval_tts =
-    let count = List.length (optgen game) and idx = ref 0
-    in
+    match optgen game with
+        | DirectNimber n -> n == 0
+        | OptionList options ->
+
+    let count = List.length options and idx = ref 0 in
     (if verbose then Printf.printf "  There are %d options to try.\n%!" count);
-    let options = optgen game
-    in
     let result = not (Par.par_list_exists_new (fun opt ->
             (if verbose && cpus = 1 then Printf.printf "  Trying option #%d...\r%!" (!idx+1));
             incr idx;

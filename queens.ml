@@ -69,7 +69,7 @@ let rec length_at_most list len =
 
 let q_options_for_game game =
     if are_no_squares_aligned game.board
-        then (if List.length game.board land 1 = 0 then [] else [q_empty])
+        then OptionList (if List.length game.board land 1 = 0 then [] else [q_empty])
         else
 (*    if are_all_squares_aligned game.board
         then [q_empty]
@@ -82,8 +82,10 @@ let q_options_for_game game =
             then List.filter (fun (a, b) -> a <= b && b <= (game.n+1)/2) game.board
             else game.board
     in
-    List.sort (fun a b -> a.size - b.size)
+    let result =
+        List.sort (fun a b -> a.size - b.size)
                 @@ List.map (fun move -> q_after_move game move) moves
+    in OptionList result
 
 let is_first_square_isolated = function
     | [] -> false

@@ -21,15 +21,15 @@ let over list fn = List.iter fn list
 
 
 type cram_game = {board: int array; is_new: bool; last_move: ((int * int) * (int * int)) option;
-            height: int; width: int; nimber: int option}
+            height: int; width: int}
 
 let c_new_game a b =
     let board = Array.make a (1 lsl b - 1)
-    in {board = board; is_new = true; last_move = None; height = a; width = b; nimber = None}
+    in {board = board; is_new = true; last_move = None; height = a; width = b}
 
 let c_empty_game a b =
     let board = Array.make a 0
-    in {board = board; is_new = false; last_move = None; height = a; width = b; nimber = None}
+    in {board = board; is_new = false; last_move = None; height = a; width = b}
 
 let can_move_horiz game (a, b) =
     if b + 1 >= game.width
@@ -162,9 +162,6 @@ let does_board_have_at_least game max =
     !count >= max
 
 let should_try_to_split game =
-    if game.nimber <> None
-        then false
-        else
     match game.last_move with
         | None -> false
         | Some ((a, b), (c, d)) ->
@@ -228,8 +225,7 @@ let difference_of_boards game region =
     is_new = false;
     width = game.width;
     height = game.height;
-    last_move = None;
-    nimber = None}
+    last_move = None}
 
 let c_split game =
     if not (should_try_to_split game) then None else
@@ -292,21 +288,6 @@ let is_row_or_column_missing game =
     is_column_missing game c1 || (c1 <> c2 && is_column_missing game c2)
 *)
 
-let make_cram_game_for_nimber v =
-   {board = [| 1 |];
-    height = 1;
-    width = 1;
-    is_new = false;
-    last_move = None;
-    nimber = Some v}
-
-let make_nimber_options_for_game v =
-    let res = ref [] in
-    for n = 0 to v - 1 do
-        push_onto (make_cram_game_for_nimber n) res
-    done;
-    !res
-
 let true_width_of_game game =
     let squares = all_squares_on_board game in
     let c_min = List.fold_left (fun acc (_, c) -> min acc c) 1000 squares and
@@ -349,11 +330,8 @@ let look_up_game_in_db game =
             None
 
 let c_sorted_options game =
-    match game.nimber with
-        | Some v -> make_nimber_options_for_game v
-        | None ->
     match look_up_game_in_db game with
-        | Some v -> (make_nimber_options_for_game v)
+        | Some v -> DirectNimber v
         | None ->
 
     let opts = c_options_for_game game
@@ -368,14 +346,15 @@ let c_sorted_options game =
     in
     let w = List.sort (fun (a, _) (b, _) -> b - a) z
     in
-    List.map (fun (_, x) -> x) w
-
+    let x = List.map (fun (_, x) -> x) w
+    in
+    OptionList x
 
 let cram_nimber_of_game a b =
     let fn = if a > 0 && b > 0 && (a land 1) + (b land 1) = 1
                 then nonzero_nimber_of_game
                 else nimber_of_game
-    in  fn (c_new_game a b) c_sorted_options c_split (fun x -> x.board, x.nimber)
+    in  fn (c_new_game a b) c_sorted_options c_split (fun x -> x.board)
 
 let run_test r c target_value =
     let computed_value = cram_nimber_of_game r c in
@@ -449,7 +428,7 @@ let make_db () =
     let db = Bytes.make (1 lsl 24) (char_of_int 255) in
     for code = 1 lsl 24 - 1 downto 0 do
         let game = make_game_from_code code in
-        let computed_value = nimber_of_game game c_sorted_options c_split (fun x -> x.board, x.nimber) in
+        let computed_value = nimber_of_game game c_sorted_options c_split (fun x -> x.board) in
         Bytes.set db code (char_of_int computed_value);
         (if code mod 1000 = 0
              then Printf.printf "  %d of %d remaining...    \r%!" code (1 lsl 24))
@@ -489,7 +468,7 @@ let _ =
                 else nimber_of_game
     in
     let (nimber, time) = with_time
-            (fun () -> fn (c_new_game a b) c_sorted_options c_split (fun x -> x.board, x.nimber))
+            (fun () -> fn (c_new_game a b) c_sorted_options c_split (fun x -> x.board))
     in
     Printf.printf "%d x %d: %d  (%.2f sec, %d positions, %d HT hits, %d splits)\n%!"
         a b nimber
