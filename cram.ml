@@ -162,6 +162,7 @@ let does_board_have_at_least game max =
     !count >= max
 
 let should_try_to_split game =
+    if true then true else
     match game.last_move with
         | None -> false
         | Some ((a, b), (c, d)) ->
