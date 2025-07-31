@@ -274,7 +274,7 @@ let distance_of_last_move_from_center game =
     and (cr, cc) = calculate_center game
     and square x = x * x
     in
-    square (r-cr) + square (c-cc)
+    square (r-cr) + 5 * square (c-cc)
 
 
 let pull_to_front fn xs =
