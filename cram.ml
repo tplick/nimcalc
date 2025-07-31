@@ -317,11 +317,13 @@ let make_code_from_board game width =
         code := !code lsl width;
         code := !code + game.board.(r)
     done;
+    if !code land ((1 lsl width) - 1) == 0
+        then code := !code lsr width;
     !code
 
 let look_up_game_in_db game =
     if not no_db &&
-                (game.height <= 4 || (game.height == 5 && game.board.(0) == 0)) &&
+                (game.height <= 4 || (game.height == 5 && (game.board.(0) == 0 || game.board.(4) == 0))) &&
                 true_width_of_game game <= 6
         then (let shifted = make_shifted_game game in
               let code = make_code_from_board shifted 6 in
