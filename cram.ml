@@ -256,7 +256,8 @@ let c_would_split game =
     in
     let part  = count_squares_on_board region and
         whole = count_squares_on_board game
-    in min part (whole - part)
+    in let v = min part (whole - part)
+    in if v <= 1 then 0 else v
 
 
 let calculate_center game =
