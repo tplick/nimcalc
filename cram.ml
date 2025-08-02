@@ -274,8 +274,9 @@ let distance_of_last_move_from_center game =
     let (r, c), _ = get_last_move game
     and (cr, cc) = calculate_center game
     and square x = x * x
+    and is_move_vertical = (match get_last_move game with (a, b), (c, d) -> b == d)
     in
-    square (r-cr) + 5 * square (c-cc)
+    square (r-cr+1) + 5 * square (c-cc) + (if is_move_vertical then 0 else 1)
 
 
 let pull_to_front fn xs =
