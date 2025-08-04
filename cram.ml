@@ -246,6 +246,13 @@ let c_split game =
                 else Some ({game with board = remains.board; is_new = false},
                            {game with board = region.board;  is_new = false})
 
+let number_of_available_center_cells game =
+    let count = ref 0 and c = game.width lsr 1 in
+    for r = 0 to game.height - 1 do
+        if game.board.(r) land (1 lsl c) > 0
+            then incr count
+    done;
+    !count
 
 let c_would_split game =
     if not (should_try_to_split game) then 0 else
@@ -257,7 +264,9 @@ let c_would_split game =
     let part  = count_squares_on_board region and
         whole = count_squares_on_board game
     in let v = min part (whole - part)
-    in if v <= 1 then 0 else v
+    in if v <= 1
+        then (if number_of_available_center_cells game == 1 then 1 else 0)
+        else v * 1000 + (if number_of_available_center_cells game == 1 then 1 else 0)
 
 
 let calculate_center game =
