@@ -254,6 +254,20 @@ let number_of_available_center_cells game =
     done;
     !count
 
+let number_of_available_cells_in_column game c =
+    let count = ref 0 in
+    for r = 0 to game.height - 1 do
+        if game.board.(r) land (1 lsl c) > 0
+            then incr count
+    done;
+    !count
+
+let is_second_column_cut_off game =
+    game.height == 4 &&
+    number_of_available_cells_in_column game 1 == 1 &&
+    game.board.(1) == game.board.(2) &&
+    game.board.(0) == game.board.(1) - 1
+
 let c_would_split game =
     if not (should_try_to_split game) then 0 else
 
@@ -265,8 +279,10 @@ let c_would_split game =
         whole = count_squares_on_board game
     in let v = min part (whole - part)
     in if v <= 1
-        then (if number_of_available_center_cells game == 1 then 1 else 0)
-        else v * 1000 + (if number_of_available_center_cells game == 1 then 1 else 0)
+        then (if number_of_available_center_cells game == 1 ||
+                 is_second_column_cut_off game then 1 else 0)
+        else v * 1000 + (if number_of_available_center_cells game == 1 ||
+                 is_second_column_cut_off game then 1 else 0)
 
 
 let calculate_center game =
