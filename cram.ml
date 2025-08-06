@@ -467,6 +467,21 @@ let checksum_db () =
                             computed_digest;
               exit 1)
 
+let try_to_make_move game direc rs cs =
+    let r = int_of_string rs and c = int_of_string cs
+    in
+    match direc with
+        | "h" | "H" -> c_after_horiz_move game (r, c)
+        | "v" | "V" -> c_after_vert_move game (r, c)
+        | _ -> invalid_arg "direction must be h or v"
+
+let print_game game =
+    for r = 0 to game.height - 1 do
+        for c = 0 to game.width - 1 do
+            Printf.printf "%s" (if is_square_on_board (r, c) game then "O" else " ");
+        done;
+        Printf.printf "\n"
+    done
 
 let _ =
     checksum_db ();
@@ -480,12 +495,23 @@ let _ =
     let fn = if a > 0 && b > 0 && (a land 1) + (b land 1) = 1
                 then nonzero_nimber_of_game
                 else nimber_of_game
+        and game = c_new_game a b
     in
+    let game_after_move =
+        try
+            try_to_make_move game Sys.argv.(3) Sys.argv.(4) Sys.argv.(5)
+        with _ ->
+            game
+    in
+    if game != game_after_move
+        then print_game game_after_move;
     let (nimber, time) = with_time
-            (fun () -> fn (c_new_game a b) c_sorted_options c_split (fun x -> x.board))
+            (fun () -> fn game_after_move c_sorted_options c_split (fun x -> x.board))
     in
-    Printf.printf "%d x %d: %d  (%.2f sec, %d positions, %d HT hits, %d splits)\n%!"
-        a b nimber
+    Printf.printf "%d x %d%s: %d  (%.2f sec, %d positions, %d HT hits, %d splits)\n%!"
+        a b
+        (if game == game_after_move then "" else " alt")
+        nimber
         time
         !call_counter
         !hit_counter
