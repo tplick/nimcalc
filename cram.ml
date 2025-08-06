@@ -492,10 +492,7 @@ let _ =
 
     let a = int_of_string Sys.argv.(1) and b = int_of_string Sys.argv.(2)
     in
-    let fn = if a > 0 && b > 0 && (a land 1) + (b land 1) = 1
-                then nonzero_nimber_of_game
-                else nimber_of_game
-        and game = c_new_game a b
+    let game = c_new_game a b
     in
     let game_after_move =
         try
@@ -505,7 +502,10 @@ let _ =
     in
     if game != game_after_move
         then print_game game_after_move;
-    let (nimber, time) = with_time
+    let fn = if a > 0 && b > 0 && (a land 1) + (b land 1) = 1 && game == game_after_move
+                then nonzero_nimber_of_game
+                else nimber_of_game
+    in let (nimber, time) = with_time
             (fun () -> fn game_after_move c_sorted_options c_split (fun x -> x.board))
     in
     Printf.printf "%d x %d%s: %d  (%.2f sec, %d positions, %d HT hits, %d splits)\n%!"
