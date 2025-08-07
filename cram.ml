@@ -289,7 +289,9 @@ let c_would_split game =
     in let v = min part (whole - part)
     in if v <= 1
         then (if number_of_available_center_cells game == 1 ||
-                 is_move_promising game then 1 else 0)
+                 is_move_promising game ||
+                 number_of_available_cells_in_column game 0 == 0
+              then 1 else 0)
         else v * 1000 + (if number_of_available_center_cells game == 1 ||
                  is_move_promising game then 1 else 0)
 
@@ -368,10 +370,55 @@ let look_up_game_in_db game =
         else
             None
 
+let minimum_column row0 =
+    let row = ref row0 and c = ref 0 in
+    while !row land 1 == 0 do
+        row := !row lsr 1;
+        incr c
+    done;
+    !c
+
+let maximum_column row0 =
+    let row = ref row0 and c = ref 0 in
+    while !row > 1 do
+        row := !row lsr 1;
+        incr c
+    done;
+    !c
+
+let is_unbroken_even_row row =
+    let c_min = minimum_column row and
+        c_max = maximum_column row in
+    (c_max - c_min + 1) land 1 == 0 &&
+    row == (1 lsl (c_max + 1)) - (1 lsl c_min)
+
+let () =
+    assert (minimum_column 6 == 1);
+    assert (maximum_column (32 + 8 + 4) == 5);
+    assert (is_unbroken_even_row (4 + 8 + 16 + 32));
+    assert (not @@ is_unbroken_even_row (4 + 8 + 16));
+    assert (not @@ is_unbroken_even_row (4 + 8 + 32 + 64))
+
+let is_even_rectangle game =
+    if game.height == 0
+        then true
+        else
+    if game.height land 1 == 1
+        then false
+        else
+
+    let first_row = game.board.(0) in
+    if Array.for_all (fun elt -> elt == first_row) game.board
+        then first_row == 0 || is_unbroken_even_row first_row
+        else false
+
 let c_sorted_options game =
     match look_up_game_in_db game with
         | Some v -> DirectNimber v
         | None ->
+    if is_even_rectangle game
+        then DirectNimber 0
+        else
 
     let opts = c_options_for_game game
     in
@@ -418,6 +465,7 @@ let run_tests () =
     run_test 4 5 2;
     run_test 4 6 0;
     run_test 5 5 0;
+    run_test 8 20 0;
 
     Printf.printf "All cram tests passed!\n";
     exit 0
