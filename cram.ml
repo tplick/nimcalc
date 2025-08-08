@@ -262,21 +262,6 @@ let number_of_available_cells_in_column game c =
     done;
     !count
 
-let is_second_column_cut_off game =
-    game.height == 4 &&
-    number_of_available_cells_in_column game 1 == 1 &&
-    game.board.(1) == game.board.(2) &&
-    game.board.(0) == game.board.(1) - 1
-
-let is_move_promising game =
-    let ((r1, c1), (r2, c2)) = get_last_move game in
-    game.height == 4 &&
-    r1 == 1 &&
-    c1 == c2 &&
-    game.board.(1) == game.board.(2) &&
-    game.board.(3) land game.board.(1) == game.board.(1) &&
-    game.board.(0) land (1 lsl c1) == 0
-
 let c_would_split game =
     if not (should_try_to_split game) then 0 else
 
@@ -289,11 +274,9 @@ let c_would_split game =
     in let v = min part (whole - part)
     in if v <= 1
         then (if number_of_available_center_cells game == 1 ||
-                 is_move_promising game ||
                  number_of_available_cells_in_column game 0 == 0
               then 1 else 0)
-        else v * 1000 + (if number_of_available_center_cells game == 1 ||
-                 is_move_promising game then 1 else 0)
+        else v * 1000 + (if number_of_available_center_cells game == 1 then 1 else 0)
 
 
 let calculate_center game =
