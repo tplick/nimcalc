@@ -22,7 +22,7 @@ let _ =
     and y = int_of_string Sys.argv.(2)
     in
     let (nimber, time) = with_time
-            (fun () -> nimber_of_game (x, y) b_options (fun _ -> None) (fun x -> x))
+            (fun () -> nimber_of_game (x, y) b_options (fun _ -> None) (fun x -> x) (fun _ -> ()))
     in
     Printf.printf "(%d, %d): %d  (took %.2f sec and %d positions)\n%!" x y nimber time !call_counter
 

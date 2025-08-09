@@ -423,7 +423,7 @@ let cram_nimber_of_game a b =
     let fn = if a > 0 && b > 0 && (a land 1) + (b land 1) = 1
                 then nonzero_nimber_of_game
                 else nimber_of_game
-    in  fn (c_new_game a b) c_sorted_options c_split (fun x -> x.board)
+    in  fn (c_new_game a b) c_sorted_options c_split (fun x -> x.board) (fun _ -> ())
 
 let run_test r c target_value =
     let computed_value = cram_nimber_of_game r c in
@@ -498,7 +498,7 @@ let make_db () =
     let db = Bytes.make (1 lsl 24) (char_of_int 255) in
     for code = 1 lsl 24 - 1 downto 0 do
         let game = make_game_from_code code in
-        let computed_value = nimber_of_game game c_sorted_options c_split (fun x -> x.board) in
+        let computed_value = nimber_of_game game c_sorted_options c_split (fun x -> x.board) (fun _ -> ()) in
         Bytes.set db code (char_of_int computed_value);
         (if code mod 1000 = 0
              then Printf.printf "  %d of %d remaining...    \r%!" code (1 lsl 24))
@@ -539,6 +539,11 @@ let print_game game =
         Printf.printf "\n"
     done
 
+let c_report_last_move opt =
+    match opt.last_move with
+        | Some ((a, b), (c, d)) -> Printf.eprintf "  ((%d, %d), (%d, %d))\n%!" a b c d
+        | None -> Printf.eprintf "  !!!%!\n"
+
 let _ =
     checksum_db ();
 
@@ -562,7 +567,7 @@ let _ =
                 then nonzero_nimber_of_game
                 else nimber_of_game
     in let (nimber, time) = with_time
-            (fun () -> fn game_after_move c_sorted_options c_split (fun x -> x.board))
+            (fun () -> fn game_after_move c_sorted_options c_split (fun x -> x.board) c_report_last_move)
     in
     Printf.printf "%d x %d%s: %d  (%.2f sec, %d positions, %d HT hits, %d splits)\n%!"
         a b
