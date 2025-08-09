@@ -181,7 +181,7 @@ is_game_a_win (Game (game, nimheap)) optgen splitter tts hasher nimval_tts =
 
 and is_game_a_loss game optgen splitter tt hasher nimval_tts reporter =
     let res = not (is_game_a_win game optgen splitter tt hasher nimval_tts) in
-    (match game with (Game (g, _)) -> reporter g);
+    (match game with (Game (g, nimheap)) -> reporter (g, nimheap));
     res
 
 and is_game_a_loss_top game optgen splitter tt hasher nimval_tts reporter =

@@ -561,10 +561,10 @@ let print_game game =
         Printf.printf "\n"
     done
 
-let c_report_last_move opt =
+let c_report_last_move (opt, nimheap) =
     match opt.last_move with
-        | Some ((a, b), (c, d)) -> Printf.eprintf "  ((%d, %d), (%d, %d))\n%!" a b c d
-        | None -> Printf.eprintf "  !!!%!\n"
+        | Some ((a, b), (c, d)) -> Printf.eprintf "  ((%d, %d), (%d, %d)) + %d\n%!" a b c d nimheap
+        | None -> Printf.eprintf "  None + %d   \n%!" nimheap
 
 let _ =
     checksum_db ();
