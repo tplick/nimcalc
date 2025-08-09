@@ -98,6 +98,28 @@ let all_squares_on_board game =
     done;
     !res
 
+let swap arr i j =
+    let tmp = arr.(i) in
+    arr.(i) <- arr.(j);
+    arr.(j) <- tmp
+
+let invert_last_move game =
+    match game.last_move with
+        | None -> None
+        | Some ((a, b), (c, d)) ->
+            Some ((game.height - 1 - a, b), (game.height - 1 - c, d))
+
+let flip_game_4 game =
+    let new_game = {game with board = Array.copy game.board; last_move = invert_last_move game}
+    in  swap new_game.board 0 3;
+        swap new_game.board 1 2;
+    new_game
+
+let try_to_flip game =
+    if game.height == 4 && game.board.(1) > game.board.(2)
+        then flip_game_4 game
+        else game
+
 let c_options_for_game game =
     let full_square_list = all_squares_on_board game
     in
@@ -109,7 +131,7 @@ let c_options_for_game game =
     and vert_moves = List.filter (can_move_vert game) square_list
     in
     let z = (List.map (c_after_horiz_move game) horiz_moves) @ (List.map (c_after_vert_move game) vert_moves)
-    in faux_shuffle z
+    in faux_shuffle (List.map try_to_flip z)
 
 let is_square_on_board (r, c) game =
     r >= 0 && c >= 0 && r < game.height && c < game.width &&
