@@ -109,6 +109,11 @@ let invert_last_move game =
         | Some ((a, b), (c, d)) ->
             Some ((game.height - 1 - a, b), (game.height - 1 - c, d))
 
+let flip_game_3 game =
+    let new_game = {game with board = Array.copy game.board; last_move = invert_last_move game}
+    in  swap new_game.board 0 2;
+    new_game
+
 let flip_game_4 game =
     let new_game = {game with board = Array.copy game.board; last_move = invert_last_move game}
     in  swap new_game.board 0 3;
@@ -116,9 +121,13 @@ let flip_game_4 game =
     new_game
 
 let try_to_flip game =
+    if game.height == 3 && game.board.(0) > game.board.(2)
+        then flip_game_3 game
+        else
     if game.height == 4 && game.board.(1) > game.board.(2)
         then flip_game_4 game
-        else game
+        else
+    game
 
 let c_options_for_game game =
     let full_square_list = all_squares_on_board game
