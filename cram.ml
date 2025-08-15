@@ -349,7 +349,7 @@ let true_width_of_game game =
 
 let cram_db =
     let directory_name = Filename.dirname Sys.argv.(0) in
-    let inn = open_in (directory_name ^ "/cram4by6.db") in
+    let inn = open_in (directory_name ^ "/cram4by7.db") in
     let s = input_line inn in
     close_in inn;
     s
@@ -375,12 +375,12 @@ let make_code_from_board game width =
 
 let look_up_game_in_db game =
     if not no_db &&
-                (game.height <= 4 || (game.height == 5 && (game.board.(0) == 0 || game.board.(4) == 0))) &&
-                true_width_of_game game <= 6
+                (game.height <= 4 || (game.height == 5 && game.board.(0) == 0)) &&
+                true_width_of_game game <= 7
         then (let shifted = make_shifted_game game in
-              let code = make_code_from_board shifted 6 in
+              let code = make_code_from_board shifted 7 in
               let v = int_of_char cram_db.[code] in
-              if v < 255 then Some v else None)
+              if v < 255 then Some (v - 16) else None)
         else
             None
 
@@ -486,11 +486,11 @@ let run_tests () =
 
 
 let make_game_from_code code0 =
-    let game = c_new_game 4 6 and
+    let game = c_new_game 4 7 and
         code = ref code0 in
-    for r = 0 to 3 do
-        game.board.(r) <- !code land 63;
-        code := !code lsr 6
+    for r = 3 downto 0 do
+        game.board.(r) <- !code land 127;
+        code := !code lsr 7
     done;
     {game with is_new = false}
 
@@ -501,22 +501,26 @@ let rec mex_of_list lst target =
         | [] -> target
         | _ -> mex_of_list zs (target + 1)
 
-let nimber_of_game_based_on_db game =
+let nimber_of_game_based_on_db game db =
     let options = c_options_for_game game in
-    let nimber_options = List.map look_up_game_in_db options in
-    let nimbers = List.map (fun n -> match n with Some v -> v | None -> invalid_arg "game not found in db") nimber_options in
-    mex_of_list nimbers 0
+    (* Printf.printf "  Got %d options... " (List.length options); *)
+    let nimbers = List.map (fun opt -> (int_of_char @@ Bytes.get db (make_code_from_board opt 7)) - 16) options in
+    (* List.iter (fun n -> Printf.printf "%d " n) nimbers; *)
+    let mex = mex_of_list nimbers 0 in
+    (* Printf.printf "-> %d\n" mex; *)
+    mex
 
 let run_db_tests () =
-    for code = 0 to 1 lsl 24 - 1 do
+    let db_bytes = Bytes.of_string cram_db in
+    for code = 0 to 1 lsl 28 - 1 do
         if cram_db.[code] <> char_of_int 255
             then (let game = make_game_from_code code in
-                  let expected_value = int_of_char cram_db.[code] and
-                      computed_value = nimber_of_game_based_on_db game
+                  let expected_value = int_of_char cram_db.[code] - 16 and
+                      computed_value = nimber_of_game_based_on_db game db_bytes
                   in if expected_value = computed_value
-                        then (if code mod 10000 = 0
-                                  then Printf.printf "  Done %d of %d...\r%!" code (1 lsl 24))
-                        else (Printf.printf "Mismatch for code %d: got %d, expected %d.\n"
+                        then (if code mod 1000000 = 0
+                                  then Printf.printf "  Done %d of %d...\r%!" code (1 lsl 28))
+                        else (Printf.printf "\nMismatch for code %d: got %d, expected %d.\n"
                                             code computed_value expected_value;
                               Printf.printf "Db tests failed.\n";
                               exit 1))
@@ -526,13 +530,14 @@ let run_db_tests () =
 
 
 let make_db () =
-    let db = Bytes.make (1 lsl 24) (char_of_int 255) in
-    for code = 1 lsl 24 - 1 downto 0 do
+    let db = Bytes.make (1 lsl 28) (char_of_int 255) in
+    for code = 0 to (1 lsl 28) - 1 do
         let game = make_game_from_code code in
-        let computed_value = nimber_of_game game c_sorted_options c_split (fun x -> x.board) (fun _ -> ()) in
-        Bytes.set db code (char_of_int computed_value);
-        (if code mod 1000 = 0
-             then Printf.printf "  %d of %d remaining...    \r%!" code (1 lsl 24))
+        let computed_value = nimber_of_game_based_on_db game db in
+        Bytes.set db code (char_of_int (computed_value + 16));
+        (* Printf.printf "  Got value %d for code %d\n" computed_value code; *)
+        (if code mod 1000000 = 0
+             then Printf.printf "  Done %d of %d remaining...\r%!" code (1 lsl 28))
     done;
 
     Printf.printf "\nWriting db out to cram_computed.db...\n";
@@ -545,10 +550,10 @@ let make_db () =
 
 
 let checksum_db () =
-    let expected_digest = "54bcd287471df5d24e7862a956615d3f0a4d9d844d2e7e623491c8e6e4525e7879d199891c3398b7b3c1bf1f560d84e7c61c6962c7a4ea363faeb7968b35efa1" and
+    let expected_digest = "476b82645f5983cd4d8b34a8205aa988b0573548769c114e221d691518f68f37101d577ee79a183b1cb67b652fb9f85fecd7306a45c77d9dc405c0375118f144" and
         computed_digest = Digest.BLAKE512.to_hex @@ Digest.BLAKE512.string cram_db in
     if expected_digest <> computed_digest
-        then (Printf.printf "Error: Cram database cram4by6.db seems to be corrupted.\n";
+        then (Printf.printf "Error: Cram database cram4by7.db seems to be corrupted.\n";
               Printf.printf "       Expected BLAKE512 digest %s, got %s.\n"
                             expected_digest
                             computed_digest;
