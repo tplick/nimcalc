@@ -7,3 +7,4 @@ default:
 	# ocamlopt.opt -I +unix unix.cmxa par.cmx nimcalc.cmx queens_set.ml -o queens_set
 	ocamlopt.opt -I +unix unix.cmxa par.cmx nimcalc.cmx cram.ml -o cram
 	ocamlopt.opt -I +unix unix.cmxa par.cmx nimcalc.cmx beans.ml -o beans
+	ocamlopt.opt -I +unix unix.cmxa par.cmx nimcalc.cmx chomp.ml -o chomp
