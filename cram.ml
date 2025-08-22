@@ -571,6 +571,7 @@ let print_game game =
     done
 
 let c_report_last_move (opt, nimheap) =
+  if verbose then
     match opt.last_move with
         | Some ((a, b), (c, d)) -> Printf.eprintf "  ((%d, %d), (%d, %d)) + %d\n%!" a b c d nimheap
         | None -> Printf.eprintf "  None + %d   \n%!" nimheap
