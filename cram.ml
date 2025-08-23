@@ -457,7 +457,9 @@ let c_sorted_options game =
     in
     let x = List.map (fun (_, x) -> x) w
     in
-    OptionList x
+    if game.is_new && game.height == 4
+        then OptionList (pull_to_front (fun y -> y.last_move = Some ((1, 0), (2, 0))) x)
+        else OptionList x
 
 let cram_nimber_of_game a b =
     let fn = if a > 0 && b > 0 && (a land 1) + (b land 1) = 1
