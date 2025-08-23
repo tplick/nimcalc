@@ -120,12 +120,21 @@ let flip_game_4 game =
         swap new_game.board 1 2;
     new_game
 
+let flip_game_5 game =
+    let new_game = {game with board = Array.copy game.board; last_move = invert_last_move game}
+    in  swap new_game.board 0 4;
+        swap new_game.board 1 3;
+    new_game
+
 let try_to_flip game =
     if game.height == 3 && game.board.(0) > game.board.(2)
         then flip_game_3 game
         else
     if game.height == 4 && game.board.(1) > game.board.(2)
         then flip_game_4 game
+        else
+    if game.height == 5 && game.board.(0) > game.board.(4)
+        then flip_game_5 game
         else
     game
 
