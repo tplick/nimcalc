@@ -457,7 +457,7 @@ let c_sorted_options game =
     in
     let x = List.map (fun (_, x) -> x) w
     in
-    if game.is_new && game.height == 4
+    if game.is_new && game.height == 4 && cpus > 1
         then OptionList (pull_to_front (fun y -> y.last_move = Some ((1, 0), (2, 0))) x)
         else OptionList x
 
