@@ -2,6 +2,10 @@
 
 Tom Plick (tomplick@gmail.com)
 
+NEWS (August 24, 2025): nimcalc managed to compute the nim-value of the 4 x 13 Cram board under normal play.  The value is 3.  The computation took two weeks on a 16-core machine with 24 GB of free RAM.  To replicate this result, run the following command (and then wait a while).  Ensure that the machine has enough RAM.
+
+`time NIMCALC_VERBOSE=1 NIMCALC_PROCS=16 NIMCALC_TABLE_SIZE=64000 ./cram 4 13`
+
 nimcalc, the "nimber calculator," is a software package designed to compute the nim-values of impartial games.  So far, three games are implemented:
 
 - Cram, a game of dominoes played on a square grid.  See https://en.wikipedia.org/wiki/Cram_(game) for information on this game.  This game is implemented in cram.ml .  For added speed, the nim-values of all boards up to 4 x 6 have been precomputed and stored in the file cram4by6.db .
