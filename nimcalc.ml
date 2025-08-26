@@ -224,6 +224,10 @@ let nimber_of_game game optgen splitter hasher reporter =
 let nonzero_nimber_of_game game optgen splitter hasher reporter =
     nimber_of_game_top' game 1 (options_for_compound optgen) (if nosplit then null_splitter else splitter) hasher (new_table_list 1 []) reporter
 
+let outcome_of_game game optgen splitter hasher reporter =
+    let tt = new_table_list 1000 [] and
+        nimval_tts = new_table_list 1 [] in
+    not @@ is_game_a_loss_top (Game (game, 0)) (options_for_compound optgen) splitter tt hasher nimval_tts reporter
 
 
 let with_time fn =

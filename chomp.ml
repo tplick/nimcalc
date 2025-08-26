@@ -18,16 +18,31 @@ let ch_options (x, y, z) =
     OptionList !options
 
 let _ =
-    let x = int_of_string Sys.argv.(1)
-    and y = int_of_string Sys.argv.(2)
-    and z = int_of_string Sys.argv.(3)
+    let calc_nimber =
+        match Sys.argv.(1) with
+            | "outcome" -> false
+            | "value" -> true
+            | _ -> invalid_arg "specify \"outcome\" or \"value\""
+    and x = int_of_string Sys.argv.(2)
+    and y = int_of_string Sys.argv.(3)
+    and z = int_of_string Sys.argv.(4)
     in
-    let (nimber, time) = with_time
+    if calc_nimber then
+        let (nimber, time) = with_time
             (fun () -> nimber_of_game (x, y, z) ch_options (fun _ -> None) (fun x -> x) (fun _ -> ()))
-    in
-    Printf.printf "(%d, %d, %d): %d  (took %.2f sec and %d positions)\n%!"
-        x y z
-        nimber
-        time
-        !call_counter
+        in
+        Printf.printf "(%d, %d, %d): %d  (took %.2f sec and %d positions)\n%!"
+            x y z
+            nimber
+            time
+            !call_counter
+    else
+        let (outcome, time) = with_time
+            (fun () -> outcome_of_game (x, y, z) ch_options (fun _ -> None) (fun x -> x) (fun _ -> ()))
+        in
+        Printf.printf "(%d, %d, %d): %s  (took %.2f sec and %d positions)\n%!"
+            x y z
+            (if outcome then "N" else "P")
+            time
+            !call_counter
 
