@@ -315,7 +315,9 @@ let c_would_split game =
     in if v <= 1
         then (if number_of_available_center_cells game == 1 ||
                  number_of_available_cells_in_column game 0 == 0
-              then 1 else 0) + (if game.height == 5 then 5 - number_of_available_center_cells game else 0)
+              then 1 else 0) + (if game.height == 5 || game.height == 6
+                                    then 6 - number_of_available_center_cells game
+                                    else 0)
         else v * 1000 + (if number_of_available_center_cells game == 1 then 1 else 0)
 
 
