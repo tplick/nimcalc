@@ -382,6 +382,20 @@ let make_code_from_board game width =
         then code := !code lsr width;
     !code
 
+let transpose_game game =
+    let tgame = {game with board = Array.make game.width 0;
+                           height = game.width;
+                           width = game.height} and
+        gw1 = game.width - 1 in
+    for r = 0 to game.height - 1 do
+        let row = ref game.board.(r) in
+        for c = 0 to game.width - 1 do
+            tgame.board.(gw1 - c) <- tgame.board.(gw1 - c) lsl 1 + (!row land 1);
+            row := !row lsr 1;
+        done
+    done;
+    tgame
+
 let look_up_game_in_db game =
     if not no_db &&
                 (game.height <= 4 || (game.height == 5 && (game.board.(0) == 0 || game.board.(4) == 0))) &&
@@ -391,7 +405,14 @@ let look_up_game_in_db game =
               let v = int_of_char cram_db.[code] in
               if v < 255 then Some v else None)
         else
-            None
+    if not no_db && (game.height == 5 || game.height == 6) &&
+                true_width_of_game game <= 4
+        then (let shifted = transpose_game (make_shifted_game game) in
+              let code = make_code_from_board shifted 6 in
+              let v = int_of_char cram_db.[code] in
+              if v < 255 then Some v else None)
+        else
+    None
 
 let minimum_column row0 =
     let row = ref row0 and c = ref 0 in
