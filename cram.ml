@@ -312,7 +312,7 @@ let c_would_split game =
     let part  = count_squares_on_board region and
         whole = count_squares_on_board game
     in let v = min part (whole - part)
-    in if v <= 1
+    in if (v <= 1 || v == 1 && (game.height == 5 || game.height == 6))
         then (if number_of_available_center_cells game == 1 ||
                  number_of_available_cells_in_column game 0 == 0
               then 1 else 0) + (if game.height == 5 || game.height == 6
