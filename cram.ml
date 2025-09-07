@@ -356,7 +356,14 @@ let true_width_of_game game =
         c_max = List.fold_left (fun acc (_, c) -> max acc c) 0 squares in
     c_max - c_min + 1
 
-let cram_db =
+let cram_db_3_by_8 =
+    let directory_name = Filename.dirname Sys.argv.(0) in
+    let inn = open_in (directory_name ^ "/cram3by8.db") in
+    let s = input_line inn in
+    close_in inn;
+    s
+
+let cram_db_4_by_6 =
     let directory_name = Filename.dirname Sys.argv.(0) in
     let inn = open_in (directory_name ^ "/cram4by6.db") in
     let s = input_line inn in
@@ -383,15 +390,21 @@ let make_code_from_board game width =
     !code
 
 let look_up_game_in_db game =
+    if not no_db && (game.height <= 3 && true_width_of_game game <= 8)
+        then (let shifted = make_shifted_game game in
+              let code = make_code_from_board shifted 8 in
+              let v = int_of_char cram_db_3_by_8.[code] in
+              if v < 255 then Some v else None)
+        else
     if not no_db &&
                 (game.height <= 4 || (game.height == 5 && (game.board.(0) == 0 || game.board.(4) == 0))) &&
                 true_width_of_game game <= 6
         then (let shifted = make_shifted_game game in
               let code = make_code_from_board shifted 6 in
-              let v = int_of_char cram_db.[code] in
+              let v = int_of_char cram_db_4_by_6.[code] in
               if v < 255 then Some v else None)
         else
-            None
+    None
 
 let minimum_column row0 =
     let row = ref row0 and c = ref 0 in
@@ -494,12 +507,14 @@ let run_tests () =
     exit 0
 
 
-let make_game_from_code code0 =
-    let game = c_new_game 4 6 and
-        code = ref code0 in
-    for r = 0 to 3 do
-        game.board.(r) <- !code land 63;
-        code := !code lsr 6
+let make_game_from_code code0 height =
+    let width = 24 / height in
+    let game = c_new_game height width and
+        code = ref code0 and
+        mask = (1 lsl width) - 1 in
+    for r = 0 to height - 1 do
+        game.board.(r) <- !code land mask;
+        code := !code lsr width
     done;
     {game with is_new = false}
 
@@ -518,9 +533,18 @@ let nimber_of_game_based_on_db game =
 
 let run_db_tests () =
     for code = 0 to 1 lsl 24 - 1 do
-        if cram_db.[code] <> char_of_int 255
-            then (let game = make_game_from_code code in
-                  let expected_value = int_of_char cram_db.[code] and
+                 (let game = make_game_from_code code 3 in
+                  let expected_value = int_of_char cram_db_3_by_8.[code] and
+                      computed_value = nimber_of_game_based_on_db game
+                  in if expected_value = computed_value
+                        then (if code mod 10000 = 0
+                                  then Printf.printf "  Done %d of %d...\r%!" code (1 lsl 24))
+                        else (Printf.printf "Mismatch for code %d: got %d, expected %d.\n"
+                                            code computed_value expected_value;
+                              Printf.printf "Db tests failed.\n";
+                              exit 1));
+                 (let game = make_game_from_code code 4 in
+                  let expected_value = int_of_char cram_db_4_by_6.[code] and
                       computed_value = nimber_of_game_based_on_db game
                   in if expected_value = computed_value
                         then (if code mod 10000 = 0
@@ -534,10 +558,10 @@ let run_db_tests () =
     exit 0
 
 
-let make_db () =
+let make_db height =
     let db = Bytes.make (1 lsl 24) (char_of_int 255) in
     for code = 1 lsl 24 - 1 downto 0 do
-        let game = make_game_from_code code in
+        let game = make_game_from_code code height in
         let computed_value = nimber_of_game game c_sorted_options c_split (fun x -> x.board) (fun _ -> ()) in
         Bytes.set db code (char_of_int computed_value);
         (if code mod 1000 = 0
@@ -554,8 +578,16 @@ let make_db () =
 
 
 let checksum_db () =
+    let expected_digest = "83a4f8a4d7f8b4bedb5d2451b02590e8b19c5f4912b0a98e8d561035822cb86c71a514ede3fcce89f0ca14329c4d41a23a290a16ca8c940a9e30f65249cbc3a8" and
+        computed_digest = Digest.BLAKE512.to_hex @@ Digest.BLAKE512.string cram_db_3_by_8 in
+    if expected_digest <> computed_digest
+        then (Printf.printf "Error: Cram database cram4by6.db seems to be corrupted.\n";
+              Printf.printf "       Expected BLAKE512 digest %s, got %s.\n"
+                            expected_digest
+                            computed_digest;
+              exit 1);
     let expected_digest = "54bcd287471df5d24e7862a956615d3f0a4d9d844d2e7e623491c8e6e4525e7879d199891c3398b7b3c1bf1f560d84e7c61c6962c7a4ea363faeb7968b35efa1" and
-        computed_digest = Digest.BLAKE512.to_hex @@ Digest.BLAKE512.string cram_db in
+        computed_digest = Digest.BLAKE512.to_hex @@ Digest.BLAKE512.string cram_db_4_by_6 in
     if expected_digest <> computed_digest
         then (Printf.printf "Error: Cram database cram4by6.db seems to be corrupted.\n";
               Printf.printf "       Expected BLAKE512 digest %s, got %s.\n"
@@ -590,7 +622,8 @@ let _ =
 
     if Sys.argv.(1) = "test" then run_tests ();
     if Sys.argv.(1) = "testdb" then run_db_tests ();
-    if Sys.argv.(1) = "makedb" then make_db ();
+    if Sys.argv.(1) = "makedb3" then make_db 3;
+    if Sys.argv.(1) = "makedb4" then make_db 4;
 
     let a = int_of_string Sys.argv.(1) and b = int_of_string Sys.argv.(2)
     in
