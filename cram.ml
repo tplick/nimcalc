@@ -148,7 +148,12 @@ let c_options_for_game game =
     let horiz_moves = List.filter (can_move_horiz game) square_list
     and vert_moves = List.filter (can_move_vert game) square_list
     in
-    let z = (List.map (c_after_horiz_move game) horiz_moves) @ (List.map (c_after_vert_move game) vert_moves)
+    let vert_moves_3 = if game.is_new && game.height == 3
+        then List.filter (fun (r1, c1) -> r1 == 0) vert_moves
+        else vert_moves
+    in
+    let z = (List.map (c_after_horiz_move game) horiz_moves) @
+            (List.map (c_after_vert_move game) vert_moves_3)
     in faux_shuffle (List.map try_to_flip z)
 
 let is_square_on_board (r, c) game =
